@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist",
+    "target": "ES2022",
+    "module": "Node16",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "strict": true,
+    "declaration": true
+  },
+  "include": ["src/**/*"]
+}
