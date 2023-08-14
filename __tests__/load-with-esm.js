@@ -1,33 +1,33 @@
-const assert = require("assert");
+const assert = require('node:assert');
 
 let importESM = () => {};
 
-describe.skip("Load with esm", () => {
+describe.skip('Load with esm', () => {
   beforeAll(function () {
     // ESM support is flagged on v12.x.
-    const majorVersion = +process.version.split(".")[0].slice(1);
+    const majorVersion = Number(process.version.split('.')[0].slice(1));
     if (majorVersion < 12) {
       this.skip();
     } else {
       // eslint-disable-next-line no-eval
-      importESM = eval("(specifier) => import(specifier)");
+      importESM = eval('(specifier) => import(specifier)');
     }
   });
 
-  it("should default export koa", async () => {
-    const exported = await importESM("koa");
-    const required = require("../");
+  it('should default export koa', async () => {
+    const exported = await importESM('koa');
+    const required = require('../');
     assert.strictEqual(exported.default, required);
   });
 
-  it("should match exports own property names", async () => {
+  it('should match exports own property names', async () => {
     const exported = new Set(
-      Object.getOwnPropertyNames(await importESM("koa"))
+      Object.getOwnPropertyNames(await importESM('koa')),
     );
-    const required = new Set(Object.getOwnPropertyNames(require("../")));
+    const required = new Set(Object.getOwnPropertyNames(require('../')));
 
     // Remove constructor properties + default export.
-    for (const k of ["prototype", "length", "name"]) {
+    for (const k of ['prototype', 'length', 'name']) {
       required.delete(k);
     }
 
@@ -38,20 +38,20 @@ describe.skip("Load with esm", () => {
     assert.strictEqual(exported.size, required.size);
     assert.strictEqual(
       [...exported].every((property) => required.has(property)),
-      true
+      true,
     );
   });
 
-  it("CommonJS exports default property", async () => {
-    const required = require("../");
+  it('CommonJS exports default property', async () => {
+    const required = require('../');
     assert.strictEqual(
-      Object.prototype.hasOwnProperty.call(required, "default"),
-      true
+      Object.prototype.hasOwnProperty.call(required, 'default'),
+      true,
     );
   });
 
-  it("CommonJS exports default property referencing self", async () => {
-    const required = require("../");
+  it('CommonJS exports default property referencing self', async () => {
+    const required = require('../');
     assert.strictEqual(required.default, required);
   });
 });

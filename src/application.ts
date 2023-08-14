@@ -10,10 +10,12 @@ import compose, {type ComposedMiddleware} from 'koa-compose';
 import onFinished from 'on-finished';
 import {HttpError} from 'http-errors';
 import _debug from 'debug';
-
-import KoaRequest from './request';
-import KoaContext from './context';
-import KoaResponse from './response';
+import koaRequest from './request';
+import {type KoaRequest} from './request.types';
+import koaContext from './context';
+import {type Context as KoaContext} from './context.types';
+import koaResponse from './response';
+import {type KoaResponse} from './response.types';
 
 /**
  * Module dependencies.
@@ -26,7 +28,7 @@ export type Middleware = (
   next: () => Promise<any>,
 ) => Promise<any>;
 
-export default class Application extends Emitter {
+export default class App extends Emitter {
   proxy: boolean;
   subdomainOffset: number;
   proxyIpHeader: string;
@@ -34,8 +36,10 @@ export default class Application extends Emitter {
   env: string;
   compose: typeof compose;
   context: KoaContext;
-  request?: KoaRequest;
-  response?: KoaResponse;
+  request: KoaRequest;
+  req?: IncomingMessage;
+  res?: ServerResponse;
+  response: KoaResponse;
   keys?: string[];
   middleware: Middleware[];
   silent?: boolean;
@@ -45,6 +49,8 @@ export default class Application extends Emitter {
     proxy: boolean;
     env: string;
   };
+
+  app: App;
 
   constructor(options: {
     env?: string;
@@ -67,10 +73,10 @@ export default class Application extends Emitter {
     if (options.keys) this.keys = options.keys;
 
     this.middleware = [];
-
-    this.context = {};
-    this.request = {};
-    this.response = {};
+    this.context = Object.create(koaContext) as KoaContext;
+    this.request = Object.create(koaRequest) as KoaRequest;
+    this.response = Object.create(koaResponse) as KoaResponse;
+    this.app = this;
 
     // util.inspect.custom support for node 6+
     /* istanbul ignore else */
@@ -115,8 +121,11 @@ export default class Application extends Emitter {
 
     if (!this.listenerCount('error')) this.on('error', this.onerror);
 
-    const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
-      const ctx: KoaContext = this.createContext(req, res);
+    const handleRequest = async (
+      request: IncomingMessage,
+      res: ServerResponse,
+    ) => {
+      const ctx = this.createContext(request, res);
       return this.handleRequest(ctx, fn);
     };
 
@@ -141,11 +150,10 @@ export default class Application extends Emitter {
     ctx: KoaContext,
     fnMiddleware: ComposedMiddleware<KoaContext>,
   ) {
-    const res = ctx.res;
+    const res = ctx.res!;
     res.statusCode = 404;
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    const onerror = (err: (Error & HttpError) | null, msg: string) => {
-      ctx.onerror(err);
+    const onerror = (error: HttpError, message: string) => {
+      ctx.onerror(error);
     };
 
     const handleResponse = () => respond(ctx);
@@ -163,29 +171,21 @@ export default class Application extends Emitter {
    * @api private
    */
 
-  createContext(req: IncomingMessage, res: ServerResponse) {
-    const context = new KoaContext({
-      ...this.context,
-      _app: this,
-      _req: req,
-      _res: res,
-    });
-
-    const request = new KoaRequest({
-      _app: this,
-      _req: req,
-      _res: res,
-    });
-    const response = new KoaResponse({
-      _app: this,
-      _req: req,
-      _res: res,
-    });
-    request.ctx = context;
-    response.ctx = context;
+  createContext(request_: IncomingMessage, res: ServerResponse): KoaContext {
+    const context: KoaContext = Object.create(this.context) as KoaContext;
+    const request = (context.request = Object.create(
+      this.request,
+    ) as KoaRequest);
+    const response = (context.response = Object.create(
+      this.response,
+    ) as KoaResponse);
+    context.app = request.app = response.app = this;
+    context.req = request.req = response.req = request_;
+    context.res = request.res = response.res = res;
+    request.ctx = response.ctx = context;
     request.response = response;
     response.request = request;
-    context.originalUrl = request.originalUrl;
+    context.originalUrl = request.originalUrl = request_.url;
     context.state = {};
     return context;
   }
@@ -197,21 +197,21 @@ export default class Application extends Emitter {
    * @api private
    */
 
-  onerror(err: Error & {status?: number; expose?: boolean}) {
+  onerror(error: Error & {status?: number; expose?: boolean}) {
     // When dealing with cross-globals a normal `instanceof` check doesn't work properly.
     // See https://github.com/koajs/koa/issues/1466
     // We can probably remove it once jest fixes https://github.com/facebook/jest/issues/2549.
     const isNativeError =
-      Object.prototype.toString.call(err) === '[object Error]' ||
-      err instanceof Error;
+      Object.prototype.toString.call(error) === '[object Error]' ||
+      error instanceof Error;
     if (!isNativeError)
-      throw new TypeError(util.format('non-error thrown: %j', err));
+      throw new TypeError(util.format('non-error thrown: %j', error));
 
-    if (err.status === 404 || err.expose) return;
+    if (error.status === 404 || error.expose) return;
     if (this.silent) return;
 
-    const msg = err.stack ?? err.toString();
-    console.error(`\n${msg.replace(/^/gm, '  ')}\n`);
+    const message = error.stack ?? error.toString();
+    console.error(`\n${message.replace(/^/gm, '  ')}\n`);
   }
 
   /**
@@ -220,7 +220,7 @@ export default class Application extends Emitter {
    */
 
   static get default() {
-    return Application;
+    return App;
   }
 
   createAsyncCtxStorageMiddleware() {
@@ -244,9 +244,8 @@ function respond(ctx: KoaContext) {
 
   if (!ctx.writable) return;
 
-  const res = ctx.res;
+  const res = ctx.res!;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   let body = ctx.body;
   const code = ctx.status;
 
@@ -258,8 +257,8 @@ function respond(ctx: KoaContext) {
   }
 
   if (ctx.method === 'HEAD') {
-    if (!res.headersSent && !ctx.response.has('Content-Length')) {
-      const {length} = ctx.response;
+    if (!res.headersSent && !ctx.response!.has('Content-Length')) {
+      const {length} = ctx.response!;
       if (Number.isInteger(length)) ctx.length = length;
     }
 
@@ -269,14 +268,13 @@ function respond(ctx: KoaContext) {
   // status body
   // eslint-disable-next-line no-eq-null, eqeqeq
   if (body == null) {
-    if (ctx.response._explicitNullBody) {
-      ctx.response.remove('Content-Type');
-      ctx.response.remove('Transfer-Encoding');
+    if (ctx.response!._explicitNullBody) {
+      ctx.response!.remove('Content-Type');
+      ctx.response!.remove('Transfer-Encoding');
       ctx.length = 0;
       return res.end();
     }
 
-    // @typescript-eslint/no-unsafe-assignment
     body =
       ctx.req?.httpVersionMajor && ctx.req?.httpVersionMajor >= 2
         ? String(code)
@@ -308,5 +306,5 @@ function respond(ctx: KoaContext) {
  * Make HttpError available to consumers of the library so that consumers don't
  * have a direct dependency upon `http-errors`
  */
-module.exports = Application;
+module.exports = App;
 module.exports.HttpError = HttpError;

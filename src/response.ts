@@ -1,9 +1,5 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-import {type URL, format as stringify, type Url} from 'node:url';
 import {Buffer} from 'node:buffer';
-import net from 'node:net';
-import {type ParsedUrlQuery} from 'node:querystring';
-import {type ServerResponse, type IncomingMessage} from 'node:http';
 import assert from 'node:assert';
 import {extname} from 'node:path';
 import Stream from 'node:stream';
@@ -15,46 +11,16 @@ import destroy from 'destroy';
 import vary from 'vary';
 import encodeUrl from 'encodeurl';
 import {is as typeis} from 'type-is';
+import {type HttpError} from 'http-errors';
 import only from './node-only';
 import getType from './cache-content-type';
+import type {KoaResponse} from './response.types';
 
 /**
  * Prototype.
  */
-
-import type KoaContext from './context';
-import type Application from './application';
-import type KoaRequest from './request';
-
-class KoaResponse {
-  req: IncomingMessage;
-  request?: KoaRequest;
-  response: ServerResponse;
-  res: ServerResponse;
-  originalUrl: string;
-  memoizedURL?: URL | Record<string, unknown>;
-  app: Application;
-  ctx?: KoaContext;
-  _explicitNullBody?: boolean;
-  private _explicitStatus?: boolean;
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  private _body?: Record<string, unknown> | null | string | Buffer | Stream;
-  private readonly _querycache?: Record<string, ParsedUrlQuery>;
-  constructor({
-    _req,
-    _res,
-    _app,
-  }: {
-    _req: IncomingMessage;
-    _res: ServerResponse;
-    _app: Application;
-  }) {
-    this.req = _req;
-    this.res = _res;
-    this.response = _res;
-    this.app = _app;
-    this.originalUrl = this.req.url || '';
-  }
+const koaResponse: KoaResponse = {
+  _explicitNullBody: false,
   /**
    * Return the request socket.
    *
@@ -63,32 +29,16 @@ class KoaResponse {
    */
 
   get socket() {
-    return this.res.socket;
-  }
-
-  /**
-   * Return response header.
-   *
-   * @return {Object}
-   * @api public
-   */
+    return this.res!.socket!;
+  },
 
   get header() {
-    const {res} = this;
-
-    return res.getHeaders();
-  }
-
-  /**
-   * Return response header, alias as response.header
-   *
-   * @return {Object}
-   * @api public
-   */
+    return this.res!.getHeaders();
+  },
 
   get headers() {
     return this.header;
-  }
+  },
 
   /**
    * Get response status code.
@@ -98,8 +48,8 @@ class KoaResponse {
    */
 
   get status() {
-    return this.res.statusCode;
-  }
+    return this.res!.statusCode;
+  },
 
   /**
    * Set response status code.
@@ -114,10 +64,11 @@ class KoaResponse {
     assert(Number.isInteger(code), 'status code must be a number');
     assert(code >= 100 && code <= 999, `invalid status code: ${code}`);
     this._explicitStatus = true;
-    this.res.statusCode = code;
-    if (this.req.httpVersionMajor < 2) this.res.statusMessage = statuses(code);
+    this.res!.statusCode = code;
+    if (this.req!.httpVersionMajor < 2)
+      this.res!.statusMessage = statuses(code);
     if (this.body && statuses.empty[code]) this.body = null;
-  }
+  },
 
   /**
    * Get response status message
@@ -127,8 +78,8 @@ class KoaResponse {
    */
 
   get message() {
-    return this.res.statusMessage || statuses.message[this.status];
-  }
+    return this.res!.statusMessage || statuses.message[this.status]!;
+  },
 
   /**
    * Set response status message
@@ -137,10 +88,10 @@ class KoaResponse {
    * @api public
    */
 
-  set message(msg) {
+  set message(message) {
     // eslint-disable-next-line unicorn/prefer-logical-operator-over-ternary
-    this.res.statusMessage = msg ? msg : '';
-  }
+    this.res!.statusMessage = message ? message : '';
+  },
 
   /**
    * Get response body.
@@ -150,8 +101,8 @@ class KoaResponse {
    */
 
   get body() {
-    return this._body;
-  }
+    return this._body!;
+  },
 
   /**
    * Set response body.
@@ -160,14 +111,14 @@ class KoaResponse {
    * @api public
    */
 
-  set body(val) {
+  set body(value) {
     const original = this._body;
-    this._body = val;
+    this._body = value;
 
     // no content
     // eslint-disable-next-line no-eq-null, eqeqeq
-    if (val == null) {
-      if (!statuses.empty[this.status]) {
+    if (value == null) {
+      if (this.status && !statuses.empty[this.status]) {
         if (this.type === 'application/json') {
           this._body = 'null';
           return;
@@ -176,7 +127,7 @@ class KoaResponse {
         this.status = 204;
       }
 
-      if (val === null) this._explicitNullBody = true;
+      if (value === null) this._explicitNullBody = true;
       this.remove('Content-Type');
       this.remove('Content-Length');
       this.remove('Transfer-Encoding');
@@ -190,25 +141,25 @@ class KoaResponse {
     const setType = !this.has('Content-Type');
 
     // string
-    if (typeof val === 'string') {
-      if (setType) this.type = /^\s*</.test(val) ? 'html' : 'text';
-      this.length = Buffer.byteLength(val);
+    if (typeof value === 'string') {
+      if (setType) this.type = /^\s*</.test(value) ? 'html' : 'text';
+      this.length = Buffer.byteLength(value);
       return;
     }
 
     // buffer
-    if (Buffer.isBuffer(val)) {
+    if (Buffer.isBuffer(value)) {
       if (setType) this.type = 'bin';
-      this.length = val.length;
+      this.length = value.length;
       return;
     }
 
     // stream
-    if (val instanceof Stream) {
-      onFinish(this.res, destroy.bind(null, val));
-      if (original !== val) {
-        val.once('error', (err) => {
-          this.ctx?.onerror(err);
+    if (value instanceof Stream) {
+      onFinish(this.res!, destroy.bind(null, value));
+      if (original !== value) {
+        value.once('error', (error: HttpError) => {
+          this.ctx?.onerror(error);
         });
         // overwriting
         // eslint-disable-next-line no-eq-null, eqeqeq
@@ -222,7 +173,7 @@ class KoaResponse {
     // json
     this.remove('Content-Length');
     this.type = 'json';
-  }
+  },
 
   /**
    * Return parsed response Content-Length when present.
@@ -233,7 +184,8 @@ class KoaResponse {
 
   get length(): number {
     if (this.has('Content-Length')) {
-      return Number.parseInt(this.get('Content-Length') as string, 10) || 0;
+      const cl = this.get('Content-Length');
+      if (typeof cl === 'string') return Number.parseInt(cl, 10) || 0;
     }
 
     const {body} = this;
@@ -241,7 +193,7 @@ class KoaResponse {
     if (typeof body === 'string') return Buffer.byteLength(body);
     if (Buffer.isBuffer(body)) return body.length;
     return Buffer.byteLength(JSON.stringify(body));
-  }
+  },
 
   /**
    * Set Content-Length field to `n`.
@@ -254,7 +206,7 @@ class KoaResponse {
     if (n && !this.has('Transfer-Encoding')) {
       this.set('Content-Length', String(n));
     }
-  }
+  },
 
   /**
    * Check if a header has been written to the socket.
@@ -264,8 +216,8 @@ class KoaResponse {
    */
 
   get headerSent() {
-    return this.res.headersSent;
-  }
+    return this.res!.headersSent;
+  },
 
   /**
    * Vary on `field`.
@@ -277,8 +229,8 @@ class KoaResponse {
   vary(field: string) {
     if (this.headerSent) return;
 
-    vary(this.res, field);
-  }
+    vary(this.res!, field);
+  },
 
   /**
    * Perform a 302 redirect to `url`.
@@ -301,15 +253,14 @@ class KoaResponse {
 
   redirect(url: string, alt: string) {
     // location
-    if (url === 'back')
-      url = (this.ctx?.get('Referrer') || alt || '/') as string;
+    if (url === 'back') url = this.ctx?.get!('Referrer') || alt || '/';
     this.set('Location', encodeUrl(url));
 
     // status
     if (!statuses.redirect[this.status]) this.status = 302;
 
     // html
-    if (this.ctx?.accepts('html')) {
+    if (this.ctx?.accepts!('html')) {
       url = escape(url);
       this.type = 'text/html; charset=utf-8';
       this.body = `Redirecting to <a href="${url}">${url}</a>.`;
@@ -319,7 +270,7 @@ class KoaResponse {
     // text
     this.type = 'text/plain; charset=utf-8';
     this.body = `Redirecting to ${url}.`;
-  }
+  },
 
   /**
    * Set Content-Disposition header to "attachment" with optional `filename`.
@@ -331,7 +282,7 @@ class KoaResponse {
   attachment(filename: string, options: contentDisposition.Options) {
     if (filename) this.type = extname(filename);
     this.set('Content-Disposition', contentDisposition(filename, options));
-  }
+  },
 
   /**
    * Get the Last-Modified date in Date form, if it exists.
@@ -340,11 +291,12 @@ class KoaResponse {
    * @api public
    */
 
-  get lastModified(): Date | undefined {
-    const date = this.get('last-modified') as string;
-    if (date) return new Date(date);
+  get lastModified() {
+    const date = this.get('last-modified');
+    if (typeof date === 'string' || typeof date === 'number')
+      return new Date(date);
     return undefined;
-  }
+  },
 
   /**
    * Set the Last-Modified date using a string or a Date.
@@ -356,10 +308,10 @@ class KoaResponse {
    * @api public
    */
 
-  set lastModified(val: string | Date | undefined) {
-    if (typeof val === 'string') val = new Date(val);
-    if (val) this.set('Last-Modified', val.toUTCString());
-  }
+  set lastModified(value: string | Date | undefined) {
+    if (typeof value === 'string') value = new Date(value);
+    if (value) this.set('Last-Modified', value.toUTCString());
+  },
 
   /**
    * Get the ETag of a response.
@@ -368,13 +320,13 @@ class KoaResponse {
    * @api public
    */
 
-  get etag(): string {
-    return this.get('ETag') as string;
-  }
+  get etag() {
+    return this.get('ETag') as unknown as string;
+  },
 
   /**
    * Set the ETag of a response.
-   * This will normalize the quotes if necessary.
+   * this will normalize the quotes if necessary.
    *
    *     this.response.etag = 'md5hashsum';
    *     this.response.etag = '"md5hashsum"';
@@ -384,10 +336,10 @@ class KoaResponse {
    * @api public
    */
 
-  set etag(val: string) {
-    if (!/^(W\/)?"/.test(val)) val = `"${val}"`;
-    this.set('ETag', val);
-  }
+  set etag(value: string) {
+    if (!/^(W\/)?"/.test(value)) value = `"${value}"`;
+    this.set('ETag', value);
+  },
 
   /**
    * Return the response mime type void of
@@ -398,10 +350,10 @@ class KoaResponse {
    */
 
   get type(): string {
-    const type = this.get('Content-Type') as string;
+    const type = this.get('Content-Type') as unknown as string;
     if (!type) return '';
     return type.split(';', 1)[0];
-  }
+  },
 
   /**
    * Set Content-Type response header with `type` through `mime.lookup()`
@@ -426,7 +378,7 @@ class KoaResponse {
     } else {
       this.remove('Content-Type');
     }
-  }
+  },
 
   /**
    * Check whether the response is one of the listed types.
@@ -440,7 +392,7 @@ class KoaResponse {
 
   is(type: string, ...types: string[]) {
     return typeis(this.type, type, ...types);
-  }
+  },
 
   /**
    * Return response header.
@@ -459,8 +411,8 @@ class KoaResponse {
    */
 
   get(field: string) {
-    return this.res.getHeader(field);
-  }
+    return this.res!.getHeader(field);
+  },
 
   /**
    * Returns true if the header identified by name is currently set in the outgoing headers.
@@ -480,11 +432,11 @@ class KoaResponse {
    */
 
   has(field: string) {
-    return typeof this.res.hasHeader === 'function'
-      ? this.res.hasHeader(field)
+    return typeof this.res!.hasHeader === 'function'
+      ? this.res!.hasHeader(field)
       : // Node < 7.7
         field.toLowerCase() in (this.headers as Record<string, unknown>);
-  }
+  },
 
   /**
    * Set header `field` to `val` or pass
@@ -503,21 +455,21 @@ class KoaResponse {
 
   set(
     field: string | Record<string, string>,
-    val?: number | string | string[],
+    value?: number | string | string[],
   ) {
     if (this.headerSent) return;
 
-    if (typeof field === 'string' && val) {
-      if (Array.isArray(val))
-        val = val.map((v) => (typeof v === 'string' ? v : String(v)));
-      else if (typeof val !== 'string') val = String(val);
-      this.res.setHeader(field, val);
+    if (typeof field === 'string' && value) {
+      if (Array.isArray(value))
+        value = value.map((v) => (typeof v === 'string' ? v : String(v)));
+      else if (typeof value !== 'string') value = String(value);
+      this.res!.setHeader(field, value);
     } else if (arguments.length === 1) {
-      for (const [key, _val] of Object.entries(field)) {
-        this.set(key, _val);
+      for (const [key, _value] of Object.entries(field)) {
+        this.set(key, _value);
       }
     }
-  }
+  },
 
   /**
    * Append additional header `field` with value `val`.
@@ -535,17 +487,17 @@ class KoaResponse {
    * @api public
    */
 
-  append(field: string, val: number | string | string[]) {
-    const prev = this.get(field);
+  append(field: string, value: number | string | string[]) {
+    const previous = this.get(field);
 
-    if (prev) {
-      val = Array.isArray(prev)
-        ? prev.concat(String(val))
-        : [String(prev)].concat(String(val));
+    if (previous) {
+      value = Array.isArray(previous)
+        ? previous.concat(String(value))
+        : [String(previous)].concat(String(value));
     }
 
-    this.set(field, val);
-  }
+    this.set(field, value);
+  },
 
   /**
    * Remove header `field`.
@@ -557,8 +509,8 @@ class KoaResponse {
   remove(field: string) {
     if (this.headerSent) return;
 
-    this.res.removeHeader(field);
-  }
+    this.res!.removeHeader(field);
+  },
 
   /**
    * Checks if the request is writable.
@@ -575,14 +527,14 @@ class KoaResponse {
     // https://nodejs.org/api/http.html#http_response_writableended
     // response.finished is undocumented feature of previous Node versions
     // https://stackoverflow.com/questions/16254385/undocumented-response-finished-in-node-js
-    if (this.res.writableEnded || this.res.finished) return false;
+    if (this.res!.writableEnded || this.res!.finished) return false;
 
-    const socket = this.res.socket;
+    const socket = this.res!.socket;
     // There are already pending outgoing res, but still writable
     // https://github.com/nodejs/node/blob/v4.4.7/lib/_http_server.js#L486
     if (!socket) return true;
     return socket.writable;
-  }
+  },
 
   /**
    * Inspect implementation.
@@ -592,11 +544,11 @@ class KoaResponse {
    */
 
   inspect() {
-    if (!this.res) return;
+    if (!this.res!) return {};
     const o = this.toJSON();
     o.body = this.body;
     return o;
-  }
+  },
 
   /**
    * Return JSON representation.
@@ -607,15 +559,15 @@ class KoaResponse {
 
   toJSON() {
     return only(this, ['status', 'message', 'header']);
-  }
+  },
 
   /**
    * Flush any set headers and begin the body
    */
 
   flushHeaders() {
-    this.res.flushHeaders();
-  }
-}
+    this.res!.flushHeaders();
+  },
+};
 
-export default KoaResponse;
+export default koaResponse;

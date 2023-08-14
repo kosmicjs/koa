@@ -1,23 +1,24 @@
-"use strict";
+'use strict';
 
-const assert = require("assert");
-const util = require("util");
-const Koa = require("../../dist/application");
+const assert = require('node:assert');
+const util = require('node:util');
+const Koa = require('../../dist/application');
+
 const app = new Koa();
 
-describe("app.inspect()", () => {
-  it("should work", () => {
-    const str = util.inspect(app);
+describe('app.inspect()', () => {
+  it('should work', () => {
+    const string_ = util.inspect(app);
     assert.strictEqual(
       "{ subdomainOffset: 2, proxy: false, env: 'test' }",
-      str
+      string_,
     );
   });
 
-  it("should return a json representation", () => {
+  it('should return a json representation', () => {
     assert.deepStrictEqual(
-      { subdomainOffset: 2, proxy: false, env: "test" },
-      app.inspect()
+      {subdomainOffset: 2, proxy: false, env: 'test'},
+      app.inspect(),
     );
   });
 });

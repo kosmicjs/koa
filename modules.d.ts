@@ -1,5 +1,5 @@
 declare module 'only' {
-  type only = (obj: unknown, keys: string | string[]) => unknown;
+  type only = (object: unknown, keys: string | string[]) => unknown;
 
   export default only;
 }

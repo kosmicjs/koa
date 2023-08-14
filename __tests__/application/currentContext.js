@@ -1,22 +1,22 @@
-"use strict";
+'use strict';
 
-const request = require("supertest");
-const assert = require("assert");
-const Koa = require("../../dist/application");
+const assert = require('node:assert');
+const request = require('supertest');
+const Koa = require('../../dist/application');
 
-describe("app.currentContext", () => {
-  it("should throw error if AsyncLocalStorage not support", () => {
-    if (require("async_hooks").AsyncLocalStorage) return;
+describe('app.currentContext', () => {
+  it('should throw error if AsyncLocalStorage not support', () => {
+    if (require('node:async_hooks').AsyncLocalStorage) return;
     assert.throws(
-      () => new Koa({ asyncLocalStorage: true }),
-      /Requires node 12\.17\.0 or higher to enable asyncLocalStorage/
+      () => new Koa({asyncLocalStorage: true}),
+      /Requires node 12\.17\.0 or higher to enable asyncLocalStorage/,
     );
   });
 
-  it("should get currentContext return context when asyncLocalStorage enable", async () => {
-    if (!require("async_hooks").AsyncLocalStorage) return;
+  it('should get currentContext return context when asyncLocalStorage enable', async () => {
+    if (!require('node:async_hooks').AsyncLocalStorage) return;
 
-    const app = new Koa({ asyncLocalStorage: true });
+    const app = new Koa({asyncLocalStorage: true});
 
     app.use(async (ctx) => {
       assert(ctx === app.currentContext);
@@ -34,12 +34,12 @@ describe("app.currentContext", () => {
         });
       });
       assert(ctx === app.currentContext);
-      app.currentContext.body = "ok";
+      app.currentContext.body = 'ok';
     });
 
     const requestServer = async () => {
       assert(app.currentContext === undefined);
-      await request(app.callback()).get("/").expect("ok");
+      await request(app.callback()).get('/').expect('ok');
       assert(app.currentContext === undefined);
     };
 
@@ -52,14 +52,14 @@ describe("app.currentContext", () => {
     ]);
   });
 
-  it("should get currentContext return undefined when asyncLocalStorage disable", async () => {
+  it('should get currentContext return undefined when asyncLocalStorage disable', async () => {
     const app = new Koa();
 
     app.use(async (ctx) => {
       assert(app.currentContext === undefined);
-      ctx.body = "ok";
+      ctx.body = 'ok';
     });
 
-    await request(app.callback()).get("/").expect("ok");
+    await request(app.callback()).get('/').expect('ok');
   });
 });

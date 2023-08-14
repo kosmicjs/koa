@@ -1,13 +1,13 @@
-function only(obj: any, keys: string | string[]) {
+function only(object: any, keys: string | string[]) {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  obj = obj || {};
+  object = object || {};
   if (typeof keys === 'string') keys = keys.split(/ +/);
-  // eslint-disable-next-line unicorn/no-array-reduce
-  return keys.reduce<Record<string, unknown>>(function (ret, key) {
+
+  return keys.reduce<Record<string, unknown>>(function (returnValue, key) {
     // eslint-disable-next-line no-eq-null, eqeqeq
-    if (obj[key] == null) return ret;
-    ret[key] = obj[key];
-    return ret;
+    if (object[key] == null) return returnValue;
+    returnValue[key] = object[key];
+    return returnValue;
   }, {});
 }
 

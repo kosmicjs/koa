@@ -1,11 +1,11 @@
-"use strict";
+'use strict';
 
-const request = require("supertest");
-const assert = require("assert");
-const Koa = require("../../dist/application");
+const assert = require('node:assert');
+const request = require('supertest');
+const Koa = require('../../dist/application');
 
-describe("app.compose", () => {
-  it("should work with default compose ", async () => {
+describe('app.compose', () => {
+  it('should work with default compose ', async () => {
     const app = new Koa();
     const calls = [];
 
@@ -25,12 +25,12 @@ describe("app.compose", () => {
 
     const server = app.listen();
 
-    await request(server).get("/").expect(404);
+    await request(server).get('/').expect(404);
 
     assert.deepStrictEqual(calls, [1, 2, 3, 4]);
   });
 
-  it("should work with configurable compose", async () => {
+  it('should work with configurable compose', async () => {
     const calls = [];
     let count = 0;
     const app = new Koa({
@@ -41,6 +41,7 @@ describe("app.compose", () => {
             const fn = fns.shift();
             fn && fn(ctx, dispatch);
           };
+
           dispatch();
         };
       },
@@ -59,7 +60,7 @@ describe("app.compose", () => {
 
     const server = app.listen();
 
-    await request(server).get("/");
+    await request(server).get('/');
 
     assert.deepStrictEqual(calls, [1, 2, 3, 4]);
     assert.equal(count, 3);

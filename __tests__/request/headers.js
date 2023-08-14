@@ -1,19 +1,19 @@
-"use strict";
+'use strict';
 
-const assert = require("assert");
-const request = require("../../test-helpers/context").request;
+const assert = require('node:assert');
+const request = require('../../test-helpers/context').request;
 
-describe("req.headers", () => {
-  it("should return the request header object", () => {
-    const req = request();
-    assert.deepStrictEqual(req.headers, req.req.headers);
+describe('req.headers', () => {
+  it('should return the request header object', () => {
+    const request_ = request();
+    assert.deepStrictEqual(request_.headers, request_.req.headers);
   });
 
-  it("should set the request header object", () => {
-    const req = request();
-    req.headers = {
-      "X-Custom-Headerfield": "Its one header, with headerfields",
+  it('should set the request header object', () => {
+    const request_ = request();
+    request_.headers = {
+      'X-Custom-Headerfield': 'Its one header, with headerfields',
     };
-    assert.deepStrictEqual(req.headers, req.req.headers);
+    assert.deepStrictEqual(request_.headers, request_.req.headers);
   });
 });

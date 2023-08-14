@@ -1,11 +1,11 @@
-"use strict";
+'use strict';
 
-const request = require("supertest");
-const assert = require("assert");
-const Koa = require("../../dist/application");
+const assert = require('node:assert');
+const request = require('supertest');
+const Koa = require('../../dist/application');
 
-describe("ctx.state", () => {
-  it("should provide a ctx.state namespace", () => {
+describe('ctx.state', () => {
+  it('should provide a ctx.state namespace', () => {
     const app = new Koa();
 
     app.use((ctx) => {
@@ -14,6 +14,6 @@ describe("ctx.state", () => {
 
     const server = app.listen();
 
-    return request(server).get("/").expect(404);
+    return request(server).get('/').expect(404);
   });
 });
