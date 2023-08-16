@@ -2,9 +2,11 @@
  * Module dependencies.
  */
 
-import util from 'node:util';
+import {inspect, format} from 'node:util';
 import {Buffer} from 'node:buffer';
-import createError, {type HttpError} from 'http-errors';
+import {type OutgoingHttpHeaders} from 'node:http';
+import createError from 'http-errors';
+import httpAssert from 'http-assert';
 import statuses from 'statuses';
 import Cookies from 'cookies';
 import delegate from 'delegates';
@@ -13,72 +15,16 @@ import type {Context} from './context.types';
 export const COOKIES = Symbol('context#cookies');
 
 const context: Context = {
-  get querystring() {
-    return this.request!.querystring;
-  },
-
-  set querystring(value: string) {
-    this.request!.querystring = value;
-  },
-
-  get idempotent() {
-    return this.request!.idempotent;
-  },
-
-  set idempotent(value) {
-    // @ts-expect-error - idempotent is readonly
-    this.request!.idempotent = value;
-  },
-
-  get search() {
-    return this.request!.search;
-  },
-
-  set search(value) {
-    this.request!.search = value;
-  },
-
-  get method() {
-    return this.request!.method;
-  },
-
-  set method(value) {
-    this.request!.method = value;
-  },
-
-  get path() {
-    return this.request!.path;
-  },
-
-  set path(value) {
-    this.request!.path = value!;
-  },
-
-  get query() {
-    return this.request!.query;
-  },
-
-  set query(value) {
-    this.request!.query = value;
-  },
-
-  get href() {
-    return this.request!.href;
-  },
-
-  get subdomains() {
-    return this.request!.subdomains;
-  },
-
   /**
    * util.inspect() implementation, which
    * just returns the JSON output.
    *
-   * @return {Object},
+   * @return {Object}
    * @api public
    */
 
   inspect() {
+    if (this === context) return this;
     return this.toJSON();
   },
 
@@ -90,9 +36,10 @@ const context: Context = {
    * to the getters and cause utilities such as
    * clone() to fail.
    *
-   * @return {Object},
+   * @return {Object}
    * @api public
    */
+
   toJSON() {
     return {
       request: this.request!.toJSON(),
@@ -105,36 +52,75 @@ const context: Context = {
     };
   },
 
+  /**
+   * Similar to .throw(), adds assertion.
+   *
+   *    this.assert(this.user, 401, 'Please login!');
+   *
+   * See: https://github.com/jshttp/http-assert
+   *
+   * @param {Mixed} test
+   * @param {Number} status
+   * @param {String} message
+   * @api public
+   */
+
+  assert: httpAssert,
+
+  /**
+   * Throw an error with `status` (default 500) and
+   * `msg`. Note that these are user-level
+   * errors, and the message may be exposed to the client.
+   *
+   *    this.throw(403)
+   *    this.throw(400, 'name required')
+   *    this.throw('something exploded')
+   *    this.throw(new Error('invalid'))
+   *    this.throw(400, new Error('invalid'))
+   *
+   * See: https://github.com/jshttp/http-errors
+   *
+   * Note: `status` should only be passed as the first parameter.
+   *
+   * @param {String|Number|Error} err, msg or status
+   * @param {String|Number|Error} [err, msg or status]
+   * @param {Object} [props]
+   * @api public
+   */
+
   throw(...args: Parameters<typeof createError>) {
     throw createError(...args);
   },
 
-  onerror(error: HttpError | null) {
+  /**
+   * Default error handling.
+   *
+   * @param {Error} err
+   * @api private
+   */
+
+  onerror(err) {
     // don't do anything if there is no error.
     // this allows you to pass `this.onerror`
     // to node-style callbacks.
     // eslint-disable-next-line no-eq-null, eqeqeq
-    if (error == null) return;
+    if (err == null) return;
 
     // When dealing with cross-globals a normal `instanceof` check doesn't work properly.
     // See https://github.com/koajs/koa/issues/1466
     // We can probably remove it once jest fixes https://github.com/facebook/jest/issues/2549.
     const isNativeError =
-      Object.prototype.toString.call(error) === '[object Error]' ||
-      error instanceof Error;
-    if (!isNativeError && error)
-      error = new Error(
-        util.format('non-error thrown: %j', error),
-      ) as HttpError;
+      Object.prototype.toString.call(err) === '[object Error]' ||
+      err instanceof Error;
+    if (!isNativeError) err = new Error(format('non-error thrown: %j', err));
 
     let headerSent = false;
-    if ((this.headerSent ?? !this.writable) && error) {
-      headerSent = true;
-      error.headerSent = true;
+    if (this.headerSent || !this.writable) {
+      headerSent = err.headerSent = true;
     }
 
     // delegate
-    this.app!.emit('error', error, this);
+    this.app!.emit('error', err, this);
 
     // nothing we can do here other
     // than delegate to the app-level
@@ -145,35 +131,41 @@ const context: Context = {
 
     const res = this.res!;
 
-    for (const name of res.getHeaderNames()) res.removeHeader(name);
+    // first unset all headers
+    /* istanbul ignore else */
+    if (typeof res.getHeaderNames === 'function') {
+      for (const name of res.getHeaderNames()) res.removeHeader(name);
+    } else {
+      // @ts-expect-error Node < 7.7
+      (res._headers as OutgoingHttpHeaders) = {}; // Node < 7.7
+    }
 
     // then set those specified
-    if (error.headers) this.response!.set(error.headers);
+    this.set!(err.headers!);
 
     // force text/plain
     this.type = 'text';
 
-    let statusCode = error.status || error.statusCode;
+    let statusCode = err.status || err.statusCode;
 
     // ENOENT support
-    if (error.code === 'ENOENT') statusCode = 404;
+    if (err.code === 'ENOENT') statusCode = 404;
 
     // default to 500
-    if (typeof statusCode !== 'number' || !statuses(statusCode))
+    if (typeof statusCode !== 'number' || !statuses[statusCode])
       statusCode = 500;
 
     // respond
-    const code = statuses(statusCode);
-    const message = error.expose ? error.message : code;
-
-    this.status = error.status = statusCode;
-    this.length = Buffer.byteLength(message);
-    res.end(message);
+    const code = statuses[statusCode];
+    const msg = err.expose ? err.message : code;
+    this.status = err.status = statusCode;
+    this.length = Buffer.byteLength(msg!);
+    res.end(msg);
   },
 
   get cookies() {
-    if (!this[COOKIES] && this.req && this.res) {
-      this[COOKIES] = new Cookies(this.req, this.res, {
+    if (!this[COOKIES]) {
+      this[COOKIES] = new Cookies(this.req!, this.res!, {
         keys: this.app!.keys,
         secure: this.request!.secure,
       });
@@ -186,6 +178,20 @@ const context: Context = {
     this[COOKIES] = _cookies;
   },
 };
+
+/**
+ * Custom inspection implementation for newer Node.js versions.
+ *
+ * @return {Object}
+ * @api public
+ */
+
+module.exports = context;
+/* istanbul ignore else */
+if (inspect.custom) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  module.exports[inspect.custom] = module.exports.inspect;
+}
 
 delegate(context, 'response')
   .method('attachment')

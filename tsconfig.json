@@ -1,12 +1,14 @@
 {
   "compilerOptions": {
     "outDir": "./dist",
-    "target": "ES2022",
-    "module": "Node16",
-    "rootDir": ".",
-    "baseUrl": ".",
+    "module": "CommonJS",
+    "esModuleInterop": true,
+    "rootDir": "./src",
+    "target": "es2019",
+    "lib": ["es2019"],
     "strict": true,
-    "declaration": true
+    "declaration": true,
+    "sourceMap": true
   },
   "include": ["src/**/*"]
 }

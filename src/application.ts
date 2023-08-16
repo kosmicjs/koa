@@ -1,15 +1,19 @@
+/* eslint-disable @typescript-eslint/member-ordering */
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {Buffer} from 'node:buffer';
 import Emitter from 'node:events';
 import util from 'node:util';
+import assert from 'node:assert';
 import Stream from 'node:stream';
 import http, {type IncomingMessage, type ServerResponse} from 'node:http';
 import process from 'node:process';
+import {type UnknownRecord} from 'type-fest';
 import statuses from 'statuses';
 import compose, {type ComposedMiddleware} from 'koa-compose';
 import onFinished from 'on-finished';
 import {HttpError} from 'http-errors';
 import _debug from 'debug';
+import only from './node-only';
 import koaRequest from './request';
 import {type KoaRequest} from './request.types';
 import koaContext from './context';
@@ -44,11 +48,7 @@ export default class App extends Emitter {
   middleware: Middleware[];
   silent?: boolean;
   ctxStorage?: AsyncLocalStorage<KoaContext>;
-  [util.inspect.custom]?: () => {
-    subdomainOffset: number;
-    proxy: boolean;
-    env: string;
-  };
+  [util.inspect.custom]?: () => UnknownRecord;
 
   app: App;
 
@@ -64,12 +64,12 @@ export default class App extends Emitter {
   }) {
     super();
     options = options || {};
-    this.proxy = options.proxy ?? false;
-    this.subdomainOffset = options.subdomainOffset ?? 2;
-    this.proxyIpHeader = options.proxyIpHeader ?? 'X-Forwarded-For';
-    this.maxIpsCount = options.maxIpsCount ?? 0;
-    this.env = options.env ?? process.env.NODE_ENV ?? 'development';
-    this.compose = options.compose ?? compose;
+    this.proxy = options.proxy || false;
+    this.subdomainOffset = options.subdomainOffset || 2;
+    this.proxyIpHeader = options.proxyIpHeader || 'X-Forwarded-For';
+    this.maxIpsCount = options.maxIpsCount || 0;
+    this.env = options.env || process.env.NODE_ENV || 'development';
+    this.compose = options.compose || compose;
     if (options.keys) this.keys = options.keys;
 
     this.middleware = [];
@@ -85,8 +85,11 @@ export default class App extends Emitter {
     }
 
     if (options.asyncLocalStorage) {
+      assert(
+        AsyncLocalStorage,
+        'Requires node 12.17.0 or higher to enable asyncLocalStorage',
+      );
       this.ctxStorage = new AsyncLocalStorage();
-      this.use(this.createAsyncCtxStorageMiddleware());
     }
   }
 
@@ -97,11 +100,7 @@ export default class App extends Emitter {
   }
 
   toJSON() {
-    return {
-      subdomainOffset: this.subdomainOffset,
-      proxy: this.proxy,
-      env: this.env,
-    };
+    return only(this, ['subdomainOffset', 'proxy', 'env']);
   }
 
   inspect() {
@@ -121,12 +120,15 @@ export default class App extends Emitter {
 
     if (!this.listenerCount('error')) this.on('error', this.onerror);
 
-    const handleRequest = async (
-      request: IncomingMessage,
-      res: ServerResponse,
-    ) => {
-      const ctx = this.createContext(request, res);
-      return this.handleRequest(ctx, fn);
+    const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
+      const ctx = this.createContext(req, res);
+      if (!this.ctxStorage) {
+        return this.handleRequest(ctx, fn);
+      }
+
+      return this.ctxStorage.run(ctx, async () => {
+        return this.handleRequest(ctx, fn);
+      });
     };
 
     return handleRequest;
@@ -135,9 +137,9 @@ export default class App extends Emitter {
   /**
    * return current context from async local storage
    */
-  // eslint-disable-next-line getter-return
   get currentContext() {
     if (this.ctxStorage) return this.ctxStorage.getStore();
+    return undefined;
   }
 
   /**
@@ -146,23 +148,29 @@ export default class App extends Emitter {
    * @api private
    */
 
-  async handleRequest(
+  // eslint-disable-next-line @typescript-eslint/promise-function-async
+  private handleRequest(
     ctx: KoaContext,
     fnMiddleware: ComposedMiddleware<KoaContext>,
   ) {
     const res = ctx.res!;
     res.statusCode = 404;
-    const onerror = (error: HttpError, message: string) => {
-      ctx.onerror(error);
+    const onerror = (
+      error: Error | HttpError | null,
+      message?: string | ServerResponse,
+    ) => {
+      ctx.onerror(error as HttpError);
     };
 
     const handleResponse = () => respond(ctx);
 
-    // @ts-expect-error aslkfjlaksfjsk
     if (onerror) onFinished(res, onerror);
 
-    // @ts-expect-error aslkfjlaksfjsk
-    return fnMiddleware(ctx).then(handleResponse).catch(onerror);
+    return fnMiddleware(ctx)
+      .then(handleResponse)
+      .catch((error: HttpError) => {
+        onerror(error, error.message);
+      });
   }
 
   /**
@@ -197,7 +205,7 @@ export default class App extends Emitter {
    * @api private
    */
 
-  onerror(error: Error & {status?: number; expose?: boolean}) {
+  onerror(error: HttpError) {
     // When dealing with cross-globals a normal `instanceof` check doesn't work properly.
     // See https://github.com/koajs/koa/issues/1466
     // We can probably remove it once jest fixes https://github.com/facebook/jest/issues/2549.
@@ -210,7 +218,8 @@ export default class App extends Emitter {
     if (error.status === 404 || error.expose) return;
     if (this.silent) return;
 
-    const message = error.stack ?? error.toString();
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    const message = error.stack || error.toString();
     console.error(`\n${message.replace(/^/gm, '  ')}\n`);
   }
 
@@ -245,12 +254,11 @@ function respond(ctx: KoaContext) {
   if (!ctx.writable) return;
 
   const res = ctx.res!;
-
-  let body = ctx.body;
-  const code = ctx.status;
+  let body = ctx.body!;
+  const code = ctx.status!;
 
   // ignore body
-  if (code && statuses.empty[code]) {
+  if (statuses.empty[code]) {
     // strip headers
     ctx.body = null;
     return res.end();
@@ -268,17 +276,17 @@ function respond(ctx: KoaContext) {
   // status body
   // eslint-disable-next-line no-eq-null, eqeqeq
   if (body == null) {
-    if (ctx.response!._explicitNullBody) {
-      ctx.response!.remove('Content-Type');
-      ctx.response!.remove('Transfer-Encoding');
+    if (ctx.response?._explicitNullBody) {
+      ctx.response.remove('Content-Type');
+      ctx.response.remove('Transfer-Encoding');
       ctx.length = 0;
       return res.end();
     }
 
     body =
-      ctx.req?.httpVersionMajor && ctx.req?.httpVersionMajor >= 2
+      ctx.req!.httpVersionMajor >= 2
         ? String(code)
-        : ctx.message ?? String(code);
+        : ctx.message || String(code);
 
     if (!res.headersSent) {
       ctx.type = 'text';

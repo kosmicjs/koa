@@ -2,7 +2,7 @@
 
 const assert = require('node:assert');
 const util = require('node:util');
-const prototype = require('../../lib/context');
+const prototype = require('../../dist/context');
 const context = require('../../test-helpers/context');
 
 describe('ctx.inspect()', () => {

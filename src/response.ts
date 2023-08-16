@@ -1,8 +1,10 @@
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
+/* eslint-disable grouped-accessor-pairs */
 import {Buffer} from 'node:buffer';
 import assert from 'node:assert';
 import {extname} from 'node:path';
 import Stream from 'node:stream';
+import {inspect} from 'node:util';
+import {type OutgoingHttpHeaders} from 'node:http';
 import contentDisposition from 'content-disposition';
 import onFinish from 'on-finished';
 import escape from 'escape-html';
@@ -11,6 +13,7 @@ import destroy from 'destroy';
 import vary from 'vary';
 import encodeUrl from 'encodeurl';
 import {is as typeis} from 'type-is';
+import {type UnknownRecord} from 'type-fest';
 import {type HttpError} from 'http-errors';
 import only from './node-only';
 import getType from './cache-content-type';
@@ -20,7 +23,6 @@ import type {KoaResponse} from './response.types';
  * Prototype.
  */
 const koaResponse: KoaResponse = {
-  _explicitNullBody: false,
   /**
    * Return the request socket.
    *
@@ -29,12 +31,30 @@ const koaResponse: KoaResponse = {
    */
 
   get socket() {
-    return this.res!.socket!;
+    return this.res!.socket;
   },
 
+  /**
+   * Return response header.
+   *
+   * @return {Object}
+   * @api public
+   */
+
   get header() {
-    return this.res!.getHeaders();
+    const res = this.res!;
+    return typeof res.getHeaders === 'function'
+      ? res.getHeaders()
+      : // @ts-expect-error Node < 7
+        (res._headers as OutgoingHttpHeaders) || {}; // Node < 7.7
   },
+
+  /**
+   * Return response header, alias as response.header
+   *
+   * @return {Object}
+   * @api public
+   */
 
   get headers() {
     return this.header;
@@ -66,7 +86,7 @@ const koaResponse: KoaResponse = {
     this._explicitStatus = true;
     this.res!.statusCode = code;
     if (this.req!.httpVersionMajor < 2)
-      this.res!.statusMessage = statuses(code);
+      this.res!.statusMessage = statuses[code]!;
     if (this.body && statuses.empty[code]) this.body = null;
   },
 
@@ -78,7 +98,7 @@ const koaResponse: KoaResponse = {
    */
 
   get message() {
-    return this.res!.statusMessage || statuses.message[this.status]!;
+    return this.res!.statusMessage || statuses[this.status]!;
   },
 
   /**
@@ -88,9 +108,8 @@ const koaResponse: KoaResponse = {
    * @api public
    */
 
-  set message(message) {
-    // eslint-disable-next-line unicorn/prefer-logical-operator-over-ternary
-    this.res!.statusMessage = message ? message : '';
+  set message(msg: string) {
+    this.res!.statusMessage = msg;
   },
 
   /**
@@ -111,14 +130,14 @@ const koaResponse: KoaResponse = {
    * @api public
    */
 
-  set body(value) {
+  set body(val) {
     const original = this._body;
-    this._body = value;
+    this._body = val;
 
     // no content
     // eslint-disable-next-line no-eq-null, eqeqeq
-    if (value == null) {
-      if (this.status && !statuses.empty[this.status]) {
+    if (val == null) {
+      if (!statuses.empty[this.status]) {
         if (this.type === 'application/json') {
           this._body = 'null';
           return;
@@ -127,7 +146,7 @@ const koaResponse: KoaResponse = {
         this.status = 204;
       }
 
-      if (value === null) this._explicitNullBody = true;
+      if (val === null) this._explicitNullBody = true;
       this.remove('Content-Type');
       this.remove('Content-Length');
       this.remove('Transfer-Encoding');
@@ -141,25 +160,25 @@ const koaResponse: KoaResponse = {
     const setType = !this.has('Content-Type');
 
     // string
-    if (typeof value === 'string') {
-      if (setType) this.type = /^\s*</.test(value) ? 'html' : 'text';
-      this.length = Buffer.byteLength(value);
+    if (typeof val === 'string') {
+      if (setType) this.type = /^\s*</.test(val) ? 'html' : 'text';
+      this.length = Buffer.byteLength(val);
       return;
     }
 
     // buffer
-    if (Buffer.isBuffer(value)) {
+    if (Buffer.isBuffer(val)) {
       if (setType) this.type = 'bin';
-      this.length = value.length;
+      this.length = val.length;
       return;
     }
 
     // stream
-    if (value instanceof Stream) {
-      onFinish(this.res!, destroy.bind(null, value));
-      if (original !== value) {
-        value.once('error', (error: HttpError) => {
-          this.ctx?.onerror(error);
+    if (val instanceof Stream) {
+      onFinish(this.res!, destroy.bind(null, val));
+      if (original !== val) {
+        val.once('error', (err: Error) => {
+          this.ctx!.onerror(err);
         });
         // overwriting
         // eslint-disable-next-line no-eq-null, eqeqeq
@@ -176,36 +195,35 @@ const koaResponse: KoaResponse = {
   },
 
   /**
-   * Return parsed response Content-Length when present.
-   *
-   * @return {Number}
-   * @api public
-   */
-
-  get length(): number {
-    if (this.has('Content-Length')) {
-      const cl = this.get('Content-Length');
-      if (typeof cl === 'string') return Number.parseInt(cl, 10) || 0;
-    }
-
-    const {body} = this;
-    if (!body || body instanceof Stream) return 0;
-    if (typeof body === 'string') return Buffer.byteLength(body);
-    if (Buffer.isBuffer(body)) return body.length;
-    return Buffer.byteLength(JSON.stringify(body));
-  },
-
-  /**
    * Set Content-Length field to `n`.
    *
    * @param {Number} n
    * @api public
    */
 
-  set length(n: number) {
-    if (n && !this.has('Transfer-Encoding')) {
-      this.set('Content-Length', String(n));
+  set length(n) {
+    if (!this.has('Transfer-Encoding')) {
+      this.set('Content-Length', n);
     }
+  },
+
+  /**
+   * Return parsed response Content-Length when present.
+   *
+   * @return {Number}
+   * @api public
+   */
+
+  get length() {
+    if (this.has('Content-Length')) {
+      return Number.parseInt(this.get('Content-Length') as string, 10) || 0;
+    }
+
+    const {body} = this;
+    if (!body || body instanceof Stream) return undefined;
+    if (typeof body === 'string') return Buffer.byteLength(body);
+    if (Buffer.isBuffer(body)) return body.length;
+    return Buffer.byteLength(JSON.stringify(body));
   },
 
   /**
@@ -226,7 +244,7 @@ const koaResponse: KoaResponse = {
    * @api public
    */
 
-  vary(field: string) {
+  vary(field) {
     if (this.headerSent) return;
 
     vary(this.res!, field);
@@ -251,16 +269,16 @@ const koaResponse: KoaResponse = {
    * @api public
    */
 
-  redirect(url: string, alt: string) {
+  redirect(url, alt) {
     // location
-    if (url === 'back') url = this.ctx?.get!('Referrer') || alt || '/';
+    if (url === 'back') url = this.ctx!.get!('Referrer') || alt || '/';
     this.set('Location', encodeUrl(url));
 
     // status
     if (!statuses.redirect[this.status]) this.status = 302;
 
     // html
-    if (this.ctx?.accepts!('html')) {
+    if (this.ctx!.accepts!('html')) {
       url = escape(url);
       this.type = 'text/html; charset=utf-8';
       this.body = `Redirecting to <a href="${url}">${url}</a>.`;
@@ -279,80 +297,9 @@ const koaResponse: KoaResponse = {
    * @api public
    */
 
-  attachment(filename: string, options: contentDisposition.Options) {
+  attachment(filename, options) {
     if (filename) this.type = extname(filename);
     this.set('Content-Disposition', contentDisposition(filename, options));
-  },
-
-  /**
-   * Get the Last-Modified date in Date form, if it exists.
-   *
-   * @return {Date}
-   * @api public
-   */
-
-  get lastModified() {
-    const date = this.get('last-modified');
-    if (typeof date === 'string' || typeof date === 'number')
-      return new Date(date);
-    return undefined;
-  },
-
-  /**
-   * Set the Last-Modified date using a string or a Date.
-   *
-   *     this.response.lastModified = new Date();
-   *     this.response.lastModified = '2013-09-13';
-   *
-   * @param {String|Date} type
-   * @api public
-   */
-
-  set lastModified(value: string | Date | undefined) {
-    if (typeof value === 'string') value = new Date(value);
-    if (value) this.set('Last-Modified', value.toUTCString());
-  },
-
-  /**
-   * Get the ETag of a response.
-   *
-   * @return {String}
-   * @api public
-   */
-
-  get etag() {
-    return this.get('ETag') as unknown as string;
-  },
-
-  /**
-   * Set the ETag of a response.
-   * this will normalize the quotes if necessary.
-   *
-   *     this.response.etag = 'md5hashsum';
-   *     this.response.etag = '"md5hashsum"';
-   *     this.response.etag = 'W/"123456789"';
-   *
-   * @param {String} etag
-   * @api public
-   */
-
-  set etag(value: string) {
-    if (!/^(W\/)?"/.test(value)) value = `"${value}"`;
-    this.set('ETag', value);
-  },
-
-  /**
-   * Return the response mime type void of
-   * parameters such as "charset".
-   *
-   * @return {String}
-   * @api public
-   */
-
-  get type(): string {
-    const type = this.get('Content-Type') as unknown as string;
-    if (!type) return '';
-    return type.split(';', 1)[0];
   },
 
   /**
@@ -381,8 +328,78 @@ const koaResponse: KoaResponse = {
   },
 
   /**
+   * Set the Last-Modified date using a string or a Date.
+   *
+   *     this.response!.lastModified = new Date();
+   *     this.response!.lastModified = '2013-09-13';
+   *
+   * @param {String|Date} type
+   * @api public
+   */
+
+  set lastModified(val) {
+    if (typeof val === 'string') val = new Date(val);
+    this.set('Last-Modified', val!.toUTCString());
+  },
+
+  /**
+   * Get the Last-Modified date in Date form, if it exists.
+   *
+   * @return {Date}
+   * @api public
+   */
+
+  get lastModified() {
+    const date = this.get('last-modified') as string;
+    if (date) return new Date(date);
+    return undefined;
+  },
+
+  /**
+   * Set the ETag of a response.
+   * This will normalize the quotes if necessary.
+   *
+   *     this.response!.etag = 'md5hashsum';
+   *     this.response!.etag = '"md5hashsum"';
+   *     this.response!.etag = 'W/"123456789"';
+   *
+   * @param {String} etag
+   * @api public
+   */
+
+  set etag(val: string) {
+    if (!/^(W\/)?"/.test(val)) val = `"${val}"`;
+    this.set('ETag', val);
+  },
+
+  /**
+   * Get the ETag of a response.
+   *
+   * @return {String}
+   * @api public
+   */
+
+  get etag() {
+    return this.get('ETag') as string;
+  },
+
+  /**
+   * Return the response mime type void of
+   * parameters such as "charset".
+   *
+   * @return {String}
+   * @api public
+   */
+
+  get type() {
+    const type = this.get('Content-Type') as string;
+    if (!type) return '';
+    return type.split(';', 1)[0];
+  },
+
+  /**
    * Check whether the response is one of the listed types.
-   * Pretty much the same as `this.request.is()`.
+   * Pretty much the same as `this.request!.is()`.
    *
    * @param {String|String[]} [type]
    * @param {String[]} [types]
@@ -390,7 +407,7 @@ const koaResponse: KoaResponse = {
    * @api public
    */
 
-  is(type: string, ...types: string[]) {
+  is(type, ...types) {
     return typeis(this.type, type, ...types);
   },
 
@@ -410,7 +427,7 @@ const koaResponse: KoaResponse = {
    * @api public
    */
 
-  get(field: string) {
+  get(field) {
     return this.res!.getHeader(field);
   },
 
@@ -431,11 +448,11 @@ const koaResponse: KoaResponse = {
    * @api public
    */
 
-  has(field: string) {
+  has(field) {
     return typeof this.res!.hasHeader === 'function'
       ? this.res!.hasHeader(field)
       : // Node < 7.7
-        field.toLowerCase() in (this.headers as Record<string, unknown>);
+        field.toLowerCase() in this.headers!;
   },
 
   /**
@@ -453,20 +470,19 @@ const koaResponse: KoaResponse = {
    * @api public
    */
 
-  set(
-    field: string | Record<string, string>,
-    value?: number | string | string[],
-  ) {
+  set(field, val) {
     if (this.headerSent) return;
 
-    if (typeof field === 'string' && value) {
-      if (Array.isArray(value))
-        value = value.map((v) => (typeof v === 'string' ? v : String(v)));
-      else if (typeof value !== 'string') value = String(value);
-      this.res!.setHeader(field, value);
-    } else if (arguments.length === 1) {
-      for (const [key, _value] of Object.entries(field)) {
-        this.set(key, _value);
+    if (arguments.length === 2) {
+      let setval: string | string[] | number | undefined = val;
+      if (Array.isArray(val))
+        setval = val.map((v) => (typeof v === 'string' ? v : String(v)));
+      else if (typeof setval !== 'string') setval = String(val);
+      this.res!.setHeader(field as string, setval);
+    } else {
+      for (const key in field as Record<string, string | string[]>) {
+        if (Object.prototype.hasOwnProperty.call(field, key))
+          this.set(key, (field as Record<string, string | string[]>)[key]);
       }
     }
   },
@@ -487,16 +503,14 @@ const koaResponse: KoaResponse = {
    * @api public
    */
 
-  append(field: string, value: number | string | string[]) {
-    const previous = this.get(field);
+  append(field, val) {
+    const prev = this.get(field) as string[] | string | undefined;
 
-    if (previous) {
-      value = Array.isArray(previous)
-        ? previous.concat(String(value))
-        : [String(previous)].concat(String(value));
+    if (prev) {
+      val = Array.isArray(prev) ? prev.concat(val) : [prev].concat(val);
     }
 
-    this.set(field, value);
+    this.set(field, val);
   },
 
   /**
@@ -506,7 +520,7 @@ const koaResponse: KoaResponse = {
    * @api public
    */
 
-  remove(field: string) {
+  remove(field) {
     if (this.headerSent) return;
 
     this.res!.removeHeader(field);
@@ -544,7 +558,7 @@ const koaResponse: KoaResponse = {
    */
 
   inspect() {
-    if (!this.res!) return {};
+    if (!this.res!) return;
     const o = this.toJSON();
     o.body = this.body;
     return o;
@@ -569,5 +583,12 @@ const koaResponse: KoaResponse = {
     this.res!.flushHeaders();
   },
 };
+
+module.exports = koaResponse;
+/* istanbul ignore else */
+if (inspect.custom) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  module.exports[inspect.custom] = module.exports.inspect;
+}
 
 export default koaResponse;

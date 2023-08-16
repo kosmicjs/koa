@@ -4,6 +4,7 @@
     "project": "./tsconfig.json"
   },
   "rules": {
+    "@typescript-eslint/prefer-nullish-coalescing": "off",
     "@typescript-eslint/naming-convention": "off",
     "@typescript-eslint/ban-types": "off",
     "unicorn/prevent-abbreviations": "off",

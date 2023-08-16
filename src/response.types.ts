@@ -31,21 +31,21 @@ type BaseResponse = {
    * @return {Connection}
    * @api public
    */
-  readonly socket: TLSSocket | Socket;
+  readonly socket: TLSSocket | Socket | null;
   /**
    * Return response header.
    *
    * @return {Object}
    * @api public
    */
-  readonly header: OutgoingHttpHeaders;
+  readonly header: OutgoingHttpHeaders | undefined;
   /**
    * Return response header, alias as response.header
    *
    * @return {Object}
    * @api public
    */
-  readonly headers: OutgoingHttpHeaders;
+  readonly headers: OutgoingHttpHeaders | undefined;
   /**
    * Get response status code.
    *
@@ -73,7 +73,7 @@ type BaseResponse = {
    * @return {Number}
    * @api public
    */
-  length: number;
+  length: number | undefined;
   /**
    * Get the Last-Modified date in Date form, if it exists.
    *
@@ -202,8 +202,8 @@ type BaseResponse = {
    * @api public
    */
   set(
-    field: string | Record<string, string>,
-    value?: number | string | string[],
+    field: string | Record<string, string | string[]> | string[],
+    value?: string | string[] | number,
   ): void;
   /**
    * Append additional header `field` with value `val`.
@@ -220,7 +220,7 @@ type BaseResponse = {
    * @param {String|Array} val
    * @api public
    */
-  append(field: string, value: number | string | string[]): void;
+  append(field: string, value: string | string[]): void;
   /**
    * Remove header `field`.
    *
@@ -234,7 +234,7 @@ type BaseResponse = {
    * @return {Object}
    * @api public
    */
-  inspect(): UnknownRecord;
+  inspect(): UnknownRecord | undefined;
   /**
    * Return JSON representation.
    *

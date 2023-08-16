@@ -1,7 +1,8 @@
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/no-unsafe-assignment */
-import {URL, format as stringify, type Url} from 'node:url';
+import {URL, format as stringify} from 'node:url';
+import {inspect} from 'node:util';
 import net from 'node:net';
-import qs, {type ParsedUrlQuery} from 'node:querystring';
+import qs from 'node:querystring';
+import {type TLSSocket} from 'node:tls';
 import accepts from 'accepts';
 import contentType from 'content-type';
 import parse from 'parseurl';
@@ -17,7 +18,7 @@ const koaRequest: KoaRequest = {
   /**
    * Return request header.
    *
-   * @return {Object},
+   * @return {Object}
    * @api public
    */
 
@@ -31,14 +32,14 @@ const koaRequest: KoaRequest = {
    * @api public
    */
 
-  set header(value) {
-    this.req!.headers = value!;
+  set header(val) {
+    this.req!.headers = val;
   },
 
   /**
    * Return request header, alias as request.header
    *
-   * @return {Object},
+   * @return {Object}
    * @api public
    */
 
@@ -52,157 +53,158 @@ const koaRequest: KoaRequest = {
    * @api public
    */
 
-  set headers(value) {
-    if (this.req?.headers) this.req.headers = value!;
+  set headers(val) {
+    this.req!.headers = val;
   },
 
   /**
    * Get request URL.
+   *
+   * @return {String}
+   * @api public
    */
+
   get url() {
-    return this.req!.url!;
+    return this.req!.url;
   },
 
   /**
    * Set request URL.
+   *
+   * @api public
    */
-  set url(value: string) {
-    if (this.req?.headers) this.req.url = value;
+
+  set url(val) {
+    this.req!.url = val;
   },
 
   /**
    * Get origin of URL.
    *
+   * @return {String}
+   * @api public
    */
+
   get origin() {
-    return `${this.protocol},://${this.host},`;
+    return `${this.protocol}://${this.host}`;
   },
 
   /**
    * Get full request URL.
    *
-   * @return {String},
+   * @return {String}
    * @api public
    */
 
   get href() {
     // support: `GET http://example.com/foo`
-    if (this.originalUrl && /^https?:\/\//i.test(this.originalUrl))
-      return this.originalUrl;
-
-    return `${this.origin}${this.originalUrl!}`;
+    if (/^https?:\/\//i.test(this.originalUrl!)) return this.originalUrl;
+    // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+    return this.origin + this.originalUrl;
   },
 
   /**
    * Get request method.
    *
-   * @return {String},
+   * @return {String}
    * @api public
    */
 
   get method() {
-    return this.req!.method!;
+    return this.req!.method;
   },
 
   /**
    * Set request method.
    *
-   * @param {String}, val
+   * @param {String} val
    * @api public
    */
 
-  set method(value: string) {
-    if (this.req?.method) this.req.method = value;
+  set method(val) {
+    this.req!.method = val;
   },
 
   /**
    * Get request pathname.
    *
-   * @return {String},
+   * @return {String}
    * @api public
    */
 
   get path() {
-    return parse(this.req!)?.pathname || '';
+    return parse(this.req!)!.pathname;
   },
 
   /**
    * Set pathname, retaining the query string when present.
    *
-   * @param {string}, path
+   * @param {String} path
    * @api public
    */
 
-  set path(path: string) {
-    let url: Url | undefined;
-    if (this.req) url = parse(this.req);
+  set path(path) {
+    const url = parse(this.req!)!;
+    if (url.pathname === path) return;
 
-    if (url?.pathname === path) return;
+    url.pathname = path;
+    url.path = null;
 
-    if (url) {
-      url.pathname = path;
-      url.path = null;
-      this.url = stringify(url);
-    }
+    this.url = stringify(url);
   },
 
   /**
    * Get parsed query string.
    *
-   * @return {Object},
+   * @return {Object}
    * @api public
    */
 
   get query() {
-    const string_ = this.querystring;
-
+    const str = this.querystring;
     const c = (this._querycache = this._querycache || {});
-
-    if (!string_) return {};
-
-    c[string_] = c[string_] || qs.parse(string_);
-
-    return c[string_];
+    // eslint-disable-next-line no-return-assign
+    return c[str] || (c[str] = qs.parse(str));
   },
 
   /**
    * Set query string as an object.
    *
-   * @param {Object}, obj
+   * @param {Object} obj
    * @api public
    */
 
-  set query(object: ParsedUrlQuery) {
-    this.querystring = qs.stringify(object);
+  set query(obj) {
+    this.querystring = qs.stringify(obj);
   },
 
   /**
    * Get query string.
    *
-   * @return {String},
+   * @return {String}
    * @api public
    */
 
   get querystring(): string {
     if (!this.req) return '';
-    const url = parse(this.req);
-    return url?.query === 'string' ? url.query || '' : '';
+    return (parse(this.req)!.query as string) || '';
   },
 
   /**
    * Set query string.
    *
-   * @param {String}, str
+   * @param {String} str
    * @api public
    */
 
-  set querystring(string_: string) {
-    if (!this.req) return;
-    const url = parse(this.req);
-    if (!url) return;
-    if (url?.search === `?${string_},`) return;
-    url.search = string_;
+  set querystring(str: string) {
+    const url = parse(this.req!)!;
+
+    if (url.search === `?${str}`) return;
+
+    url.search = str;
     url.path = null;
+
     this.url = stringify(url);
   },
 
@@ -210,25 +212,25 @@ const koaRequest: KoaRequest = {
    * Get the search string. Same as the query string
    * except it includes the leading ?.
    *
-   * @return {String},
+   * @return {String}
    * @api public
    */
 
-  get search(): string {
+  get search() {
     if (!this.querystring) return '';
-    return `?${this.querystring},`;
+    return `?${this.querystring}`;
   },
 
   /**
    * Set the search string. Same as
    * request.querystring= but included for ubiquity.
    *
-   * @param {String}, str
+   * @param {String} str
    * @api public
    */
 
-  set search(string_) {
-    this.querystring = string_;
+  set search(str) {
+    this.querystring = str;
   },
 
   /**
@@ -236,19 +238,15 @@ const koaRequest: KoaRequest = {
    * and support X-Forwarded-Host when a
    * proxy is enabled.
    *
-   * @return {String}, hostname:port
+   * @return {String} hostname:port
    * @api public
    */
 
   get host(): string {
-    const proxy = this.app?.proxy;
+    const proxy = this.app!.proxy;
     let host = proxy && this.get('X-Forwarded-Host');
     if (!host) {
-      if (
-        typeof this.req?.httpVersionMajor === 'number' &&
-        this.req.httpVersionMajor >= 2
-      )
-        host = this.get(':authority');
+      if (this.req!.httpVersionMajor >= 2) host = this.get(':authority');
       if (!host) host = this.get('Host');
     }
 
@@ -261,14 +259,14 @@ const koaRequest: KoaRequest = {
    * and support X-Forwarded-Host when a
    * proxy is enabled.
    *
-   * @return {String}, hostname
+   * @return {String} hostname
    * @api public
    */
 
-  get hostname(): string {
+  get hostname() {
     const host = this.host;
     if (!host) return '';
-    if (host.startsWith('[')) return this.URL.hostname || ''; // IPv6
+    if (host.startsWith('[')) return (this.URL.hostname as string) || ''; // IPv6
     return host.split(':', 1)[0];
   },
 
@@ -276,22 +274,22 @@ const koaRequest: KoaRequest = {
    * Get WHATWG parsed URL.
    * Lazily memoized.
    *
-   * @return {URL},
+   * @return {URL|Object}
    * @api public
    */
 
-  get URL(): URL {
-    if (this.memoizedURL) return this.memoizedURL;
-
-    const originalUrl = this.originalUrl || ''; // avoid undefined in template string
-
-    try {
-      this.memoizedURL = new URL(`${this.origin},${originalUrl},`);
-    } catch {
-      this.memoizedURL = Object.create(null);
+  get URL() {
+    /* istanbul ignore else */
+    if (!this.memoizedURL) {
+      const originalUrl = this.originalUrl || ''; // avoid undefined in template string
+      try {
+        this.memoizedURL = new URL(`${this.origin}${originalUrl}`);
+      } catch {
+        this.memoizedURL = Object.create(null) as UnknownRecord;
+      }
     }
 
-    return this.memoizedURL!;
+    return this.memoizedURL;
   },
 
   /**
@@ -299,23 +297,20 @@ const koaRequest: KoaRequest = {
    * Last-Modified and/or the ETag
    * still match.
    *
-   * @return {Boolean},
+   * @return {Boolean}
    * @api public
    */
 
-  get fresh(): boolean {
+  get fresh() {
     const method = this.method;
-    const s = this.ctx!.status;
+    const s = this.ctx!.status!;
 
     // GET or HEAD for weak freshness validation only
     if (method !== 'GET' && method !== 'HEAD') return false;
 
-    if (
-      this.response?.header &&
-      this.header && // 2xx or 304 as per rfc2616 14.26
-      ((s && s >= 200 && s < 300) || s === 304)
-    ) {
-      return fresh(this.header, this.response.header);
+    // 2xx or 304 as per rfc2616 14.26
+    if ((s >= 200 && s < 300) || s === 304) {
+      return fresh(this.header, this.response!.header!);
     }
 
     return false;
@@ -326,7 +321,7 @@ const koaRequest: KoaRequest = {
    * "Last-Modified" and / or the "ETag" for the
    * resource has changed.
    *
-   * @return {Boolean},
+   * @return {Boolean}
    * @api public
    */
 
@@ -337,22 +332,23 @@ const koaRequest: KoaRequest = {
   /**
    * Check if the request is idempotent.
    *
-   * @return {Boolean},
+   * @return {Boolean}
    * @api public
    */
 
   get idempotent() {
     const methods = ['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS', 'TRACE'];
     // eslint-disable-next-line no-implicit-coercion, no-bitwise
-    return Boolean(~methods.indexOf(this.method));
+    return Boolean(~methods.indexOf(this.method!));
   },
 
   /**
    * Return the request socket.
    *
-   * @return {Connection},
+   * @return {Connection}
    * @api public
    */
+
   get socket() {
     return this.req!.socket;
   },
@@ -360,35 +356,31 @@ const koaRequest: KoaRequest = {
   /**
    * Get the charset when present or undefined.
    *
-   * @return {String},
+   * @return {String}
    * @api public
    */
 
   get charset() {
     try {
-      const request = this.req!;
-      if (request) {
-        const {parameters} = contentType.parse(request);
-        return parameters.charset || '';
-      }
+      const {parameters} = contentType.parse(this.req!);
+      return parameters.charset || '';
     } catch {
       return '';
     }
-
-    return '';
   },
 
   /**
    * Return parsed Content-Length when present.
    *
-   * @return {Number},
+   * @return {Number}
    * @api public
    */
 
-  get length(): number {
-    const length = this.get('Content-Length');
-    if (length === '') return 0;
-    return Math.trunc(Number(length));
+  get length(): number | undefined {
+    const len = this.get('Content-Length');
+    if (len === '') return undefined;
+    // eslint-disable-next-line no-bitwise, unicorn/prefer-math-trunc
+    return ~~len;
   },
 
   /**
@@ -396,15 +388,15 @@ const koaRequest: KoaRequest = {
    * when requested with TLS. When the proxy setting
    * is enabled the "X-Forwarded-Proto" header
    * field will be trusted. If you're running behind
-   * a reverse proxy this supplies https for you (this)
+   * a reverse proxy that supplies https for you this
    * may be enabled.
    *
-   * @return {String},
+   * @return {String}
    * @api public
    */
 
   get protocol() {
-    if ('encrypted' in this.socket && this.socket.encrypted) return 'https';
+    if ((this.socket as TLSSocket).encrypted) return 'https';
     if (!this.app!.proxy) return 'http';
     const proto = this.get('X-Forwarded-Proto');
     return proto ? proto.split(/\s*,\s*/, 1)[0] : 'http';
@@ -413,13 +405,13 @@ const koaRequest: KoaRequest = {
   /**
    * Shorthand for:
    *
-   *    (this).protocol == 'https'
+   *    this.protocol == 'https'
    *
-   * @return {Boolean},
+   * @return {Boolean}
    * @api public
    */
 
-  get secure(): boolean {
+  get secure() {
     return this.protocol === 'https';
   },
 
@@ -431,21 +423,16 @@ const koaRequest: KoaRequest = {
    * you would receive the array `["client", "proxy1", "proxy2"]`
    * where "proxy2" is the furthest down-stream.
    *
-   * @return {Array},
+   * @return {Array}
    * @api public
    */
 
-  get ips(): string[] {
-    const proxy = this.app?.proxy;
-    let value;
-    if (this.app?.proxyIpHeader) value = this.get(this.app.proxyIpHeader);
-    let ips = proxy && value ? value.split(/\s*,\s*/) : [];
-
-    if (
-      typeof this.app?.maxIpsCount === 'number' &&
-      this.app?.maxIpsCount > 0
-    ) {
-      ips = ips.slice(-this.app.maxIpsCount);
+  get ips() {
+    const proxy = this.app!.proxy;
+    const val = this.get(this.app!.proxyIpHeader);
+    let ips = proxy && val ? val.split(/\s*,\s*/) : [];
+    if ((this.app!.maxIpsCount as number) > 0) {
+      ips = ips.slice(-this.app!.maxIpsCount);
     }
 
     return ips;
@@ -456,16 +443,16 @@ const koaRequest: KoaRequest = {
    * When `app.proxy` is `true`, parse
    * the "X-Forwarded-For" ip address list and return the first one
    *
-   * @return {String},
+   * @return {String}
    * @api public
    */
 
-  get ip(): string {
+  get ip() {
     if (!this[IP]) {
       this[IP] = this.ips[0] || this.socket.remoteAddress || '';
     }
 
-    return this[IP]!;
+    return this[IP];
   },
 
   set ip(_ip) {
@@ -477,19 +464,19 @@ const koaRequest: KoaRequest = {
    *
    * Subdomains are the dot-separated parts of the host before the main domain
    * of the app. By default, the domain of the app is assumed to be the last two
-   * parts of the host. (this) can be changed by setting `app.subdomainOffset`.
+   * parts of the host. This can be changed by setting `app.subdomainOffset`.
    *
    * For example, if the domain is "tobi.ferrets.example.com":
-   * If `app.subdomainOffset` is not set, (this).subdomains is
+   * If `app.subdomainOffset` is not set, this.subdomains is
    * `["ferrets", "tobi"]`.
-   * If `app.subdomainOffset` is 3, (this).subdomains is `["tobi"]`.
+   * If `app.subdomainOffset` is 3, this.subdomains is `["tobi"]`.
    *
-   * @return {Array},
+   * @return {Array}
    * @api public
    */
 
   get subdomains() {
-    const offset = this.app?.subdomainOffset;
+    const offset = this.app!.subdomainOffset;
     const hostname = this.hostname;
     if (net.isIP(hostname)) return [];
     return hostname.split('.').reverse().slice(offset);
@@ -499,26 +486,24 @@ const koaRequest: KoaRequest = {
    * Get accept object.
    * Lazily memoized.
    *
-   * @return {Object},
+   * @return {Object}
    * @api private
    */
 
-  get accept(): accepts.Accepts {
-    if (this._accept) return this._accept;
-
-    this._accept = accepts(this.req!);
-    return this._accept;
+  get accept() {
+    // eslint-disable-next-line no-return-assign
+    return this._accept || (this._accept = accepts(this.req!));
   },
 
   /**
    * Set accept object.
    *
-   * @param {Object},
+   * @param {Object}
    * @api private
    */
 
-  set accept(object) {
-    this._accept = object;
+  set accept(obj) {
+    this._accept = obj;
   },
 
   /**
@@ -534,35 +519,35 @@ const koaRequest: KoaRequest = {
    * Examples:
    *
    *     // Accept: text/html
-   *     (this).accepts('html');
+   *     this.accepts('html');
    *     // => "html"
    *
    *     // Accept: text/*, application/json
-   *     (this).accepts('html');
+   *     this.accepts('html');
    *     // => "html"
-   *     (this).accepts('text/html');
+   *     this.accepts('text/html');
    *     // => "text/html"
-   *     (this).accepts('json', 'text');
+   *     this.accepts('json', 'text');
    *     // => "json"
-   *     (this).accepts('application/json');
+   *     this.accepts('application/json');
    *     // => "application/json"
    *
    *     // Accept: text/*, application/json
-   *     (this).accepts('image/png');
-   *     (this).accepts('png');
+   *     this.accepts('image/png');
+   *     this.accepts('png');
    *     // => false
    *
    *     // Accept: text/*;q=.5, application/json
-   *     (this).accepts(['html', 'json']);
-   *     (this).accepts('html', 'json');
+   *     this.accepts(['html', 'json']);
+   *     this.accepts('html', 'json');
    *     // => "json"
    *
-   * @param {String|Array}, type(s)...
-   * @return {String|Array|false},
+   * @param {String|Array} type(s)...
+   * @return {String|Array|false}
    * @api public
    */
 
-  accepts(...args: string[]) {
+  accepts(...args) {
     return this.accept.types(...args);
   },
 
@@ -574,8 +559,8 @@ const koaRequest: KoaRequest = {
    *
    *     ['gzip', 'deflate']
    *
-   * @param {String|Array}, encoding(s)...
-   * @return {String|Array},
+   * @param {String|Array} encoding(s)...
+   * @return {String|Array}
    * @api public
    */
 
@@ -591,12 +576,12 @@ const koaRequest: KoaRequest = {
    *
    *     ['utf-8', 'utf-7', 'iso-8859-1']
    *
-   * @param {String|Array}, charset(s)...
-   * @return {String|Array},
+   * @param {String|Array} charset(s)...
+   * @return {String|Array}
    * @api public
    */
 
-  acceptsCharsets(...args: string[]) {
+  acceptsCharsets(...args) {
     return this.accept.charsets(...args);
   },
 
@@ -608,12 +593,12 @@ const koaRequest: KoaRequest = {
    *
    *     ['es', 'pt', 'en']
    *
-   * @param {String|Array}, lang(s)...
-   * @return {Array|String},
+   * @param {String|Array} lang(s)...
+   * @return {Array|String}
    * @api public
    */
 
-  acceptsLanguages(...args: string[]) {
+  acceptsLanguages(...args) {
     return this.accept.languages(...args);
   },
 
@@ -622,29 +607,29 @@ const koaRequest: KoaRequest = {
    * header field and if it contains any of the given mime `type`s.
    * If there is no request body, `null` is returned.
    * If there is no content type, `false` is returned.
-   * Otherwise, it returns the first `type` this matches.
+   * Otherwise, it returns the first `type` that matches.
    *
    * Examples:
    *
    *     // With Content-Type: text/html; charset=utf-8
-   *     (this).is('html'); // => 'html'
-   *     (this).is('text/html'); // => 'text/html'
-   *     (this).is('text/*', 'application/json'); // => 'text/html'
+   *     this.is('html'); // => 'html'
+   *     this.is('text/html'); // => 'text/html'
+   *     this.is('text/*', 'application/json'); // => 'text/html'
    *
    *     // When Content-Type is application/json
-   *     (this).is('json', 'urlencoded'); // => 'json'
-   *     (this).is('application/json'); // => 'application/json'
-   *     (this).is('html', 'application/*'); // => 'application/json'
+   *     this.is('json', 'urlencoded'); // => 'json'
+   *     this.is('application/json'); // => 'application/json'
+   *     this.is('html', 'application/*'); // => 'application/json'
    *
-   *     (this).is('html'); // => false
+   *     this.is('html'); // => false
    *
-   * @param {String|String[]}, [type]
-   * @param {String[]}, [types]
-   * @return {String|false|null},
+   * @param {String|String[]} [type]
+   * @param {String[]} [types]
+   * @return {String|false|null}
    * @api public
    */
 
-  is(type: string, ...types: string[]) {
+  is(type, ...types) {
     return typeis(this.req!, type, ...types);
   },
 
@@ -652,11 +637,11 @@ const koaRequest: KoaRequest = {
    * Return the request mime type void of
    * parameters such as "charset".
    *
-   * @return {String},
+   * @return {String}
    * @api public
    */
 
-  get type(): string {
+  get type() {
     const type = this.get('Content-Type');
     if (!type) return '';
     return type.split(';')[0];
@@ -670,32 +655,30 @@ const koaRequest: KoaRequest = {
    *
    * Examples:
    *
-   *     (this).get('Content-Type');
+   *     this.get('Content-Type');
    *     // => "text/plain"
    *
-   *     (this).get('content-type');
+   *     this.get('content-type');
    *     // => "text/plain"
    *
-   *     (this).get('Something');
+   *     this.get('Something');
    *     // => ''
    *
-   * @param {String}, field
-   * @return {String},
+   * @param {String} field
+   * @return {String}
    * @api public
    */
 
-  get(field) {
-    const request = this.req!;
+  get(field): string {
+    const req = this.req!;
     switch ((field = field.toLowerCase())) {
       case 'referer':
       case 'referrer': {
-        return (
-          (request.headers.referrer as string) || request.headers.referer || ''
-        );
+        return (req.headers.referrer as string) || req.headers.referer || '';
       }
 
       default: {
-        return (request.headers[field] as string) || '';
+        return (req.headers[field] as string) || '';
       }
     }
   },
@@ -703,19 +686,19 @@ const koaRequest: KoaRequest = {
   /**
    * Inspect implementation.
    *
-   * @return {Object},
+   * @return {Object}
    * @api public
    */
 
-  inspect(): UnknownRecord {
-    if (!this.req) return {};
+  inspect() {
+    if (!this.req) return;
     return this.toJSON();
   },
 
   /**
    * Return JSON representation.
    *
-   * @return {Object},
+   * @return {Object}
    * @api public
    */
 
@@ -723,5 +706,12 @@ const koaRequest: KoaRequest = {
     return only(this, ['method', 'url', 'header']);
   },
 };
+
+module.exports = koaRequest;
+/* istanbul ignore else */
+if (inspect.custom) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  module.exports[inspect.custom] = module.exports.inspect;
+}
 
 export default koaRequest;

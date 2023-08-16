@@ -3,6 +3,7 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from 'node:http';
+import {type Url} from 'node:url';
 import {type TLSSocket} from 'node:tls';
 import {type ParsedUrlQuery} from 'node:querystring';
 import {type Socket} from 'node:net';
@@ -16,9 +17,9 @@ import {type IP} from './request';
 type RequestExtras = {
   req: IncomingMessage;
   res: ServerResponse;
-  originalUrl: string;
+  originalUrl: string | undefined;
   app: Application;
-  memoizedURL: URL;
+  memoizedURL: URL | {};
   ctx: Context;
   response: KoaResponse;
   _accept: accepts.Accepts;
@@ -44,7 +45,7 @@ type BaseRequest = {
   /**
    * Get request URL.
    */
-  url: string;
+  url: string | undefined;
   /**
    * Get origin of URL.
    *
@@ -56,7 +57,7 @@ type BaseRequest = {
    * @return {String},
    * @api public
    */
-  readonly href: string;
+  readonly href: string | undefined;
   /**
    * Return the request mime type void of
    * parameters such as "charset".
@@ -71,14 +72,14 @@ type BaseRequest = {
    * @return {String},
    * @api public
    */
-  method: string;
+  method: string | undefined;
   /**
    * Get request pathname.
    *
    * @return {String},
    * @api public
    */
-  path: string;
+  path: string | null;
   /**
    * Get parsed query string.
    *
@@ -126,7 +127,7 @@ type BaseRequest = {
    * @return {URL},
    * @api public
    */
-  readonly URL: URL;
+  readonly URL: URL | UnknownRecord;
   /**
    * Check if the request is fresh, aka
    * Last-Modified and/or the ETag
@@ -172,7 +173,7 @@ type BaseRequest = {
    * @return {Number},
    * @api public
    */
-  readonly length: number;
+  readonly length?: number;
   /**
    * Return the protocol string "http" or "https"
    * when requested with TLS. When the proxy setting
@@ -374,7 +375,7 @@ type BaseRequest = {
    * @return {Object},
    * @api public
    */
-  inspect(): UnknownRecord;
+  inspect(): UnknownRecord | undefined;
   /**
    * Return JSON representation.
    *

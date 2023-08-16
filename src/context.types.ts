@@ -1,23 +1,20 @@
 import {type ParsedUrlQuery} from 'node:querystring';
 import {type IncomingMessage, type ServerResponse} from 'node:http';
+import type httpAssert from 'http-assert';
 import type Cookies from 'cookies';
-import type {UnknownRecord} from 'type-fest';
+import type {UnknownRecord, SetOptional} from 'type-fest';
 import {type HttpError} from 'http-errors';
 import type {KoaResponse} from './response.types';
 import type {KoaRequest} from './request.types';
 import type Application from './application';
 import {type COOKIES} from './context';
 
+/**
+ * The types for the base context object
+ */
 type ContextBase = {
-  querystring: string;
-  idempotent: boolean;
-  search: string;
-  method: string;
-  path: string;
-  query: ParsedUrlQuery;
+  assert: typeof httpAssert;
   cookies: Cookies | undefined;
-  readonly href: string;
-  readonly subdomains: string[];
   inspect(): any;
   toJSON(): {
     request: any;
@@ -29,13 +26,15 @@ type ContextBase = {
     socket: string;
   };
   throw(...args: any): never;
-  onerror(error: HttpError | null): void;
+  onerror(
+    error: SetOptional<HttpError, 'status' | 'statusCode' | 'expose'> | null,
+  ): void;
 };
 
+/**
+ * The context object delgate for the response
+ */
 type ContextResponseDelegation = {
-  // response getter delegation
-  readonly headerSent: KoaResponse['headerSent'];
-  readonly writable: KoaResponse['writable'];
   // response method delegation
   attachment: KoaResponse['attachment'];
   redirect: KoaResponse['redirect'];
@@ -53,24 +52,15 @@ type ContextResponseDelegation = {
   type: KoaResponse['type'];
   lastModified: KoaResponse['lastModified'];
   etag: KoaResponse['etag'];
+  // response getter delegation
+  readonly headerSent: KoaResponse['headerSent'];
+  readonly writable: KoaResponse['writable'];
 };
 
+/**
+ * The context object delegate for the request
+ */
 type ContextRequestDelegation = {
-  // request getter delegation
-  readonly origin: KoaRequest['origin'];
-  readonly href: KoaRequest['href'];
-  readonly subdomains: KoaRequest['subdomains'];
-  readonly protocol: KoaRequest['protocol'];
-  readonly host: KoaRequest['host'];
-  readonly hostname: KoaRequest['hostname'];
-  readonly URL: KoaRequest['URL'];
-  readonly header: KoaRequest['header'];
-  readonly headers: KoaRequest['headers'];
-  readonly secure: KoaRequest['secure'];
-  readonly stale: KoaRequest['stale'];
-  readonly fresh: KoaRequest['fresh'];
-  readonly ips: KoaRequest['ips'];
-  readonly ip: KoaRequest['ip'];
   // request method delegation
   acceptsLanguages: KoaRequest['acceptsLanguages'];
   acceptsEncodings: KoaRequest['acceptsEncodings'];
@@ -88,9 +78,24 @@ type ContextRequestDelegation = {
   path: KoaRequest['path'];
   url: KoaRequest['url'];
   accept: KoaRequest['accept'];
+  // request getter delegation
+  readonly origin: KoaRequest['origin'];
+  readonly href: KoaRequest['href'];
+  readonly subdomains: KoaRequest['subdomains'];
+  readonly protocol: KoaRequest['protocol'];
+  readonly host: KoaRequest['host'];
+  readonly hostname: KoaRequest['hostname'];
+  readonly URL: KoaRequest['URL'];
+  readonly header: KoaRequest['header'];
+  readonly headers: KoaRequest['headers'];
+  readonly secure: KoaRequest['secure'];
+  readonly stale: KoaRequest['stale'];
+  readonly fresh: KoaRequest['fresh'];
+  readonly ips: KoaRequest['ips'];
+  readonly ip: KoaRequest['ip'];
 };
 
-type ContextExtras = {
+type ContextExtras<State = UnknownRecord> = {
   response: KoaResponse;
   request: KoaRequest;
   req: IncomingMessage;
@@ -99,10 +104,10 @@ type ContextExtras = {
   respond: boolean;
   originalUrl: string;
   [COOKIES]: Cookies;
-  state: UnknownRecord;
+  state: State;
 };
 
-export type Context = ContextBase &
-  Partial<ContextExtras> &
+export type Context<State = UnknownRecord> = ContextBase &
+  Partial<ContextExtras<State>> &
   Partial<ContextResponseDelegation> &
   Partial<ContextRequestDelegation>;
