@@ -10,11 +10,11 @@ import httpAssert from 'http-assert';
 import statuses from 'statuses';
 import Cookies from 'cookies';
 import delegate from 'delegates';
-import type {Context} from './context.types';
+import type {InternalContext} from './context.types';
 
 export const COOKIES = Symbol('context#cookies');
 
-const context: Context = {
+const context: InternalContext = {
   /**
    * util.inspect() implementation, which
    * just returns the JSON output.

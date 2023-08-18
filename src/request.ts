@@ -10,11 +10,11 @@ import typeis from 'type-is';
 import fresh from 'fresh';
 import {type UnknownRecord} from 'type-fest';
 import only from './node-only';
-import {type KoaRequest} from './request.types';
+import {type InternalKoaRequest} from './request.types';
 
 export const IP = Symbol('context#ip');
 
-const koaRequest: KoaRequest = {
+const koaRequest: InternalKoaRequest = {
   /**
    * Return request header.
    *
@@ -303,7 +303,7 @@ const koaRequest: KoaRequest = {
 
   get fresh() {
     const method = this.method;
-    const s = this.ctx!.status!;
+    const s = this.ctx!.status;
 
     // GET or HEAD for weak freshness validation only
     if (method !== 'GET' && method !== 'HEAD') return false;
@@ -431,7 +431,7 @@ const koaRequest: KoaRequest = {
     const proxy = this.app!.proxy;
     const val = this.get(this.app!.proxyIpHeader);
     let ips = proxy && val ? val.split(/\s*,\s*/) : [];
-    if ((this.app!.maxIpsCount as number) > 0) {
+    if (this.app!.maxIpsCount > 0) {
       ips = ips.slice(-this.app!.maxIpsCount);
     }
 

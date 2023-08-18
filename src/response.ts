@@ -17,12 +17,12 @@ import {type UnknownRecord} from 'type-fest';
 import {type HttpError} from 'http-errors';
 import only from './node-only';
 import getType from './cache-content-type';
-import type {KoaResponse} from './response.types';
+import type {InternalKoaResponse} from './response.types';
 
 /**
  * Prototype.
  */
-const koaResponse: KoaResponse = {
+const koaResponse: InternalKoaResponse = {
   /**
    * Return the request socket.
    *
@@ -271,14 +271,14 @@ const koaResponse: KoaResponse = {
 
   redirect(url, alt) {
     // location
-    if (url === 'back') url = this.ctx!.get!('Referrer') || alt || '/';
+    if (url === 'back') url = this.ctx!.get('Referrer') || alt || '/';
     this.set('Location', encodeUrl(url));
 
     // status
     if (!statuses.redirect[this.status]) this.status = 302;
 
     // html
-    if (this.ctx!.accepts!('html')) {
+    if (this.ctx!.accepts('html')) {
       url = escape(url);
       this.type = 'text/html; charset=utf-8';
       this.body = `Redirecting to <a href="${url}">${url}</a>.`;

@@ -8,13 +8,13 @@ import {type TLSSocket} from 'node:tls';
 import {type ParsedUrlQuery} from 'node:querystring';
 import {type Socket} from 'node:net';
 import type accepts from 'accepts';
-import {type UnknownRecord} from 'type-fest';
+import {type UnknownRecord, type Simplify} from 'type-fest';
 import type Application from './application';
 import {type Context} from './context.types';
 import {type KoaResponse} from './response.types';
 import {type IP} from './request';
 
-type RequestExtras = {
+interface RequestExtras extends UnknownRecord {
   req: IncomingMessage;
   res: ServerResponse;
   originalUrl: string | undefined;
@@ -25,7 +25,7 @@ type RequestExtras = {
   _accept: accepts.Accepts;
   _querycache: Record<string, ParsedUrlQuery>;
   [IP]: string;
-};
+}
 
 type BaseRequest = {
   /**
@@ -385,4 +385,7 @@ type BaseRequest = {
   toJSON(): UnknownRecord;
 };
 
-export type KoaRequest = BaseRequest & Partial<RequestExtras>;
+export interface InternalKoaRequest
+  extends Simplify<BaseRequest & Partial<RequestExtras>> {}
+
+export interface KoaRequest extends Simplify<BaseRequest & RequestExtras> {}

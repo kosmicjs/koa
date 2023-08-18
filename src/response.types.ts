@@ -8,12 +8,12 @@ import {type TLSSocket} from 'node:tls';
 import {type Stream} from 'node:stream';
 import {type Buffer} from 'node:buffer';
 import {type Socket} from 'node:net';
-import {type UnknownRecord} from 'type-fest';
+import {type UnknownRecord, type Simplify} from 'type-fest';
 import {type Context} from './context.types';
 import type Application from './application';
 import {type KoaRequest} from './request.types';
 
-type ResponseExtras = {
+interface ResponseExtras extends UnknownRecord {
   app: Application;
   res: ServerResponse;
   req: IncomingMessage;
@@ -22,7 +22,7 @@ type ResponseExtras = {
   _explicitStatus: boolean;
   _body: Stream | Buffer | string | UnknownRecord | null;
   ctx: Context;
-};
+}
 
 type BaseResponse = {
   /**
@@ -248,4 +248,12 @@ type BaseResponse = {
   flushHeaders(): void;
 };
 
-export type KoaResponse = BaseResponse & Partial<ResponseExtras>;
+/**
+ * This type is meant to be used internally by Kosmic.
+ */
+export type InternalKoaResponse = BaseResponse & Partial<ResponseExtras>;
+
+/**
+ * The extendable type for the response object.
+ */
+export interface KoaResponse extends Simplify<BaseResponse & ResponseExtras> {}

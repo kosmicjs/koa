@@ -1,9 +1,9 @@
-import {type ParsedUrlQuery} from 'node:querystring';
 import {type IncomingMessage, type ServerResponse} from 'node:http';
 import type httpAssert from 'http-assert';
 import type Cookies from 'cookies';
-import type {UnknownRecord, SetOptional} from 'type-fest';
+import type {UnknownRecord, SetOptional, Simplify} from 'type-fest';
 import {type HttpError} from 'http-errors';
+import type createError from 'http-errors';
 import type {KoaResponse} from './response.types';
 import type {KoaRequest} from './request.types';
 import type Application from './application';
@@ -12,7 +12,8 @@ import {type COOKIES} from './context';
 /**
  * The types for the base context object
  */
-type ContextBase = {
+interface ContextBase {
+  [key: string]: unknown;
   assert: typeof httpAssert;
   cookies: Cookies | undefined;
   inspect(): any;
@@ -25,16 +26,16 @@ type ContextBase = {
     res: string;
     socket: string;
   };
-  throw(...args: any): never;
+  throw(...args: Parameters<typeof createError>): never;
   onerror(
     error: SetOptional<HttpError, 'status' | 'statusCode' | 'expose'> | null,
   ): void;
-};
+}
 
 /**
  * The context object delgate for the response
  */
-type ContextResponseDelegation = {
+interface ContextResponseDelegation {
   // response method delegation
   attachment: KoaResponse['attachment'];
   redirect: KoaResponse['redirect'];
@@ -55,12 +56,12 @@ type ContextResponseDelegation = {
   // response getter delegation
   readonly headerSent: KoaResponse['headerSent'];
   readonly writable: KoaResponse['writable'];
-};
+}
 
 /**
  * The context object delegate for the request
  */
-type ContextRequestDelegation = {
+interface ContextRequestDelegation {
   // request method delegation
   acceptsLanguages: KoaRequest['acceptsLanguages'];
   acceptsEncodings: KoaRequest['acceptsEncodings'];
@@ -93,21 +94,35 @@ type ContextRequestDelegation = {
   readonly fresh: KoaRequest['fresh'];
   readonly ips: KoaRequest['ips'];
   readonly ip: KoaRequest['ip'];
-};
+}
 
-type ContextExtras<State = UnknownRecord> = {
+interface ContextExtras<State = UnknownRecord> {
   response: KoaResponse;
   request: KoaRequest;
   req: IncomingMessage;
   res: ServerResponse;
   app: Application;
   respond: boolean;
-  originalUrl: string;
-  [COOKIES]: Cookies;
+  originalUrl?: string;
+  [COOKIES]?: Cookies;
   state: State;
-};
+}
 
-export type Context<State = UnknownRecord> = ContextBase &
+/**
+ * The internal context object meant for internal use only
+ */
+export type InternalContext<State = UnknownRecord> = ContextBase &
   Partial<ContextExtras<State>> &
   Partial<ContextResponseDelegation> &
   Partial<ContextRequestDelegation>;
+
+/**
+ * The extendable context object
+ */
+export interface Context<State = UnknownRecord>
+  extends Simplify<
+    ContextBase &
+      ContextExtras<State> &
+      ContextResponseDelegation &
+      ContextRequestDelegation
+  > {}

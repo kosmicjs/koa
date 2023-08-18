@@ -9,15 +9,15 @@ import http, {type IncomingMessage, type ServerResponse} from 'node:http';
 import process from 'node:process';
 import {type UnknownRecord} from 'type-fest';
 import statuses from 'statuses';
-import compose, {type ComposedMiddleware} from 'koa-compose';
 import onFinished from 'on-finished';
 import {HttpError} from 'http-errors';
 import _debug from 'debug';
+import compose, {type Middleware} from './compose';
 import only from './node-only';
 import koaRequest from './request';
 import {type KoaRequest} from './request.types';
 import koaContext from './context';
-import {type Context as KoaContext} from './context.types';
+import {type Context} from './context.types';
 import koaResponse from './response';
 import {type KoaResponse} from './response.types';
 
@@ -27,19 +27,14 @@ import {type KoaResponse} from './response.types';
 
 const debug = _debug('koa:application');
 
-export type Middleware = (
-  ctx: KoaContext,
-  next: () => Promise<any>,
-) => Promise<any>;
-
 export default class App extends Emitter {
   proxy: boolean;
   subdomainOffset: number;
   proxyIpHeader: string;
-  maxIpsCount: string | number;
+  maxIpsCount: number;
   env: string;
   compose: typeof compose;
-  context: KoaContext;
+  context: Context;
   request: KoaRequest;
   req?: IncomingMessage;
   res?: ServerResponse;
@@ -47,12 +42,10 @@ export default class App extends Emitter {
   keys?: string[];
   middleware: Middleware[];
   silent?: boolean;
-  ctxStorage?: AsyncLocalStorage<KoaContext>;
+  ctxStorage?: AsyncLocalStorage<Context>;
   [util.inspect.custom]?: () => UnknownRecord;
 
-  app: App;
-
-  constructor(options: {
+  constructor(options?: {
     env?: string;
     keys?: string[];
     proxy?: boolean;
@@ -73,10 +66,9 @@ export default class App extends Emitter {
     if (options.keys) this.keys = options.keys;
 
     this.middleware = [];
-    this.context = Object.create(koaContext) as KoaContext;
+    this.context = Object.create(koaContext) as Context;
     this.request = Object.create(koaRequest) as KoaRequest;
     this.response = Object.create(koaResponse) as KoaResponse;
-    this.app = this;
 
     // util.inspect.custom support for node 6+
     /* istanbul ignore else */
@@ -107,7 +99,7 @@ export default class App extends Emitter {
     return this.toJSON();
   }
 
-  use(fn: Middleware) {
+  use(fn: Middleware): this {
     if (typeof fn !== 'function')
       throw new TypeError('middleware must be a function!');
     debug('use %s', fn.name || '-');
@@ -120,7 +112,7 @@ export default class App extends Emitter {
 
     if (!this.listenerCount('error')) this.on('error', this.onerror);
 
-    const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
+    const handleRequest = (req: IncomingMessage, res: ServerResponse) => {
       const ctx = this.createContext(req, res);
       if (!this.ctxStorage) {
         return this.handleRequest(ctx, fn);
@@ -148,12 +140,11 @@ export default class App extends Emitter {
    * @api private
    */
 
-  // eslint-disable-next-line @typescript-eslint/promise-function-async
   private handleRequest(
-    ctx: KoaContext,
-    fnMiddleware: ComposedMiddleware<KoaContext>,
+    ctx: Context,
+    fnMiddleware: ReturnType<typeof compose>,
   ) {
-    const res = ctx.res!;
+    const {res} = ctx;
     res.statusCode = 404;
     const onerror = (
       error: Error | HttpError | null,
@@ -179,8 +170,8 @@ export default class App extends Emitter {
    * @api private
    */
 
-  createContext(request_: IncomingMessage, res: ServerResponse): KoaContext {
-    const context: KoaContext = Object.create(this.context) as KoaContext;
+  createContext(request_: IncomingMessage, res: ServerResponse): Context {
+    const context: Context = Object.create(this.context) as Context;
     const request = (context.request = Object.create(
       this.request,
     ) as KoaRequest);
@@ -232,10 +223,10 @@ export default class App extends Emitter {
     return App;
   }
 
-  createAsyncCtxStorageMiddleware() {
+  createAsyncCtxStorageMiddleware(): Middleware {
     // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
     const app = this;
-    return async function (ctx: KoaContext, next: () => Promise<any>) {
+    return async function (ctx, next) {
       await app.ctxStorage?.run(ctx, async () => {
         await next();
       });
@@ -247,15 +238,16 @@ export default class App extends Emitter {
  * Response helper.
  */
 
-function respond(ctx: KoaContext) {
+function respond(ctx: Context) {
   // allow bypassing koa
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-boolean-literal-compare
   if (ctx.respond === false) return;
 
   if (!ctx.writable) return;
 
-  const res = ctx.res!;
+  const res = ctx.res;
   let body = ctx.body!;
-  const code = ctx.status!;
+  const code = ctx.status;
 
   // ignore body
   if (statuses.empty[code]) {
@@ -265,8 +257,8 @@ function respond(ctx: KoaContext) {
   }
 
   if (ctx.method === 'HEAD') {
-    if (!res.headersSent && !ctx.response!.has('Content-Length')) {
-      const {length} = ctx.response!;
+    if (!res.headersSent && !ctx.response.has('Content-Length')) {
+      const {length} = ctx.response;
       if (Number.isInteger(length)) ctx.length = length;
     }
 
@@ -284,7 +276,7 @@ function respond(ctx: KoaContext) {
     }
 
     body =
-      ctx.req!.httpVersionMajor >= 2
+      ctx.req.httpVersionMajor >= 2
         ? String(code)
         : ctx.message || String(code);
 
@@ -316,3 +308,12 @@ function respond(ctx: KoaContext) {
  */
 module.exports = App;
 module.exports.HttpError = HttpError;
+
+/**
+ * export types
+ */
+
+export {type Context} from './context.types';
+export {type KoaRequest} from './request.types';
+export {type KoaResponse} from './response.types';
+export {type Middleware, type Next} from './compose';

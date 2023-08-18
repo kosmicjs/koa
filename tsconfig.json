@@ -1,11 +1,9 @@
 {
   "compilerOptions": {
     "outDir": "./dist",
-    "module": "Node16",
-    "esModuleInterop": true,
-    "rootDir": "./src",
     "target": "ES2022",
-    "lib": ["es2022"],
+    "module": "Node16",
+    "rootDir": "./src",
     "strict": true,
     "declaration": true,
     "sourceMap": true
