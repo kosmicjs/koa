@@ -15,6 +15,14 @@
     "node",
     "node.js"
   ],
+  "homepage": "https://github.com/kosmicjs/koa#readme",
+  "bugs": {
+    "url": "https://github.com/kosmicjs/koa/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kosmicjs/koa.git"
+  },
   "license": "MIT",
   "author": "Spencer Snyder <sasnyde2@gmail.com> (https://spencersnyder.io/)",
   "main": "dist/application.js",

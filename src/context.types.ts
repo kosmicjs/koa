@@ -97,7 +97,7 @@ interface ContextRequestDelegation {
   readonly ip: KoaRequest['ip'];
 }
 
-interface ContextExtras<State = UnknownRecord> {
+interface ContextExtras<UserState = State> {
   response: KoaResponse;
   request: KoaRequest;
   req: IncomingMessage;
@@ -106,7 +106,7 @@ interface ContextExtras<State = UnknownRecord> {
   respond: boolean;
   originalUrl?: string;
   [COOKIES]?: Cookies;
-  state: State;
+  state: UserState;
 }
 
 /**
@@ -123,13 +123,15 @@ export type InternalContext<State = UnknownRecord> = ContextBase &
   Partial<ContextResponseDelegation> &
   Partial<ContextRequestDelegation>;
 
+type State = UnknownRecord;
+
 /**
  * The extendable context object
  */
-export interface Context<State = UnknownRecord>
+export interface Context<UserState = State>
   extends Simplify<
     ContextBase &
-      ContextExtras<State> &
+      ContextExtras<UserState> &
       ContextResponseDelegation &
       ContextRequestDelegation &
       ExtendableContext
