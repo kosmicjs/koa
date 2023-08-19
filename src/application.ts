@@ -313,7 +313,7 @@ module.exports.HttpError = HttpError;
  * export types
  */
 
-export {type Context} from './context.types';
-export {type KoaRequest} from './request.types';
-export {type KoaResponse} from './response.types';
-export {type Middleware, type Next} from './compose';
+export * from './context.types';
+export * from './request.types';
+export * from './response.types';
+export * from './compose';

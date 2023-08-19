@@ -1,8 +1,20 @@
 {
-  "name": "@kosmic/koa-ts",
+  "name": "@kosmic/koa",
   "version": "0.0.0",
-  "description": "my awesome project!",
-  "keywords": [],
+  "description": "Typescript first drop in replacement for koa",
+  "keywords": [
+    "koa",
+    "typescript",
+    "koajs",
+    "kosmic",
+    "@kosmic",
+    "@kosmic/koa",
+    "framework",
+    "server",
+    "http",
+    "node",
+    "node.js"
+  ],
   "license": "MIT",
   "author": "Spencer Snyder <sasnyde2@gmail.com> (https://spencersnyder.io/)",
   "main": "dist/application.js",

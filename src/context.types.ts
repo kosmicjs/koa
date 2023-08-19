@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-interface */
 import {type IncomingMessage, type ServerResponse} from 'node:http';
 import type httpAssert from 'http-assert';
 import type Cookies from 'cookies';
@@ -109,6 +110,12 @@ interface ContextExtras<State = UnknownRecord> {
 }
 
 /**
+ * To help maintain type compatibility with current third party types we
+ * can just use the names of the types instead of the types themselves for extending where we want
+ */
+export interface ExtendableContext {}
+
+/**
  * The internal context object meant for internal use only
  */
 export type InternalContext<State = UnknownRecord> = ContextBase &
@@ -124,5 +131,6 @@ export interface Context<State = UnknownRecord>
     ContextBase &
       ContextExtras<State> &
       ContextResponseDelegation &
-      ContextRequestDelegation
+      ContextRequestDelegation &
+      ExtendableContext
   > {}
