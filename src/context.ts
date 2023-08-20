@@ -10,36 +10,15 @@ import httpAssert from 'http-assert';
 import statuses from 'statuses';
 import Cookies from 'cookies';
 import delegate from 'delegates';
-import type {InternalContext} from './context.types';
+import type {InternalContext} from './context.types.js';
 
 export const COOKIES = Symbol('context#cookies');
 
 const context: InternalContext = {
-  /**
-   * util.inspect() implementation, which
-   * just returns the JSON output.
-   *
-   * @return {Object}
-   * @api public
-   */
-
   inspect() {
     if (this === context) return this;
     return this.toJSON();
   },
-
-  /**
-   * Return JSON representation.
-   *
-   * Here we explicitly invoke .toJSON() on each
-   * object, as iteration will otherwise fail due
-   * to the getters and cause utilities such as
-   * clone() to fail.
-   *
-   * @return {Object}
-   * @api public
-   */
-
   toJSON() {
     return {
       request: this.request!.toJSON(),
@@ -51,44 +30,8 @@ const context: InternalContext = {
       socket: '<original node socket>',
     };
   },
-
-  /**
-   * Similar to .throw(), adds assertion.
-   *
-   *    this.assert(this.user, 401, 'Please login!');
-   *
-   * See: https://github.com/jshttp/http-assert
-   *
-   * @param {Mixed} test
-   * @param {Number} status
-   * @param {String} message
-   * @api public
-   */
-
   assert: httpAssert,
-
-  /**
-   * Throw an error with `status` (default 500) and
-   * `msg`. Note that these are user-level
-   * errors, and the message may be exposed to the client.
-   *
-   *    this.throw(403)
-   *    this.throw(400, 'name required')
-   *    this.throw('something exploded')
-   *    this.throw(new Error('invalid'))
-   *    this.throw(400, new Error('invalid'))
-   *
-   * See: https://github.com/jshttp/http-errors
-   *
-   * Note: `status` should only be passed as the first parameter.
-   *
-   * @param {String|Number|Error} err, msg or status
-   * @param {String|Number|Error} [err, msg or status]
-   * @param {Object} [props]
-   * @api public
-   */
-
-  throw(...args: Parameters<typeof createError>) {
+  throw(...args) {
     throw createError(...args);
   },
 

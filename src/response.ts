@@ -13,11 +13,9 @@ import destroy from 'destroy';
 import vary from 'vary';
 import encodeUrl from 'encodeurl';
 import {is as typeis} from 'type-is';
-import {type UnknownRecord} from 'type-fest';
-import {type HttpError} from 'http-errors';
-import only from './node-only';
-import getType from './cache-content-type';
-import type {InternalKoaResponse} from './response.types';
+import only from './node-only.js';
+import getType from './cache-content-type.js';
+import type {InternalKoaResponse} from './response.types.js';
 
 /**
  * Prototype.

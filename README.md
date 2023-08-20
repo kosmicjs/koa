@@ -8,11 +8,13 @@
 
 - Much better, seamless, and stronger TS experience in every aspect.
 - Types designed specifically for great intellisense with ts server.
+  - easily see and validate any type on any object
+  - Full koa documentation and examples on _every_ getter,setter,method, and property on any koa object!!!!! Never check the koa docs again!
 - Less packages to install and worry about when using koa with typescript.
 
 ### I'm just using koa with JS - I don't need @kosmic/koa
 
-Wait! If you use ts-server (ie, most code editors are using this), you can immediately benefit from awesome intellisense, even in pure JavaScript!!
+Wait! If you use ts-server (ie, most code editors are using this), you can immediately benefit from awesome intellisense, even in pure JavaScript!! Once again, never check the docs again for you Koa questions, its right there in your editor!
 
 ### How to use
 

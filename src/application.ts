@@ -10,16 +10,16 @@ import process from 'node:process';
 import {type UnknownRecord} from 'type-fest';
 import statuses from 'statuses';
 import onFinished from 'on-finished';
-import {HttpError} from 'http-errors';
+import {type HttpError} from 'http-errors';
 import _debug from 'debug';
-import compose, {type Middleware} from './compose';
-import only from './node-only';
-import koaRequest from './request';
-import {type KoaRequest} from './request.types';
-import koaContext from './context';
-import {type Context} from './context.types';
-import koaResponse from './response';
-import {type KoaResponse} from './response.types';
+import compose, {type Middleware} from './compose.js';
+import only from './node-only.js';
+import koaRequest from './request.js';
+import {type KoaRequest} from './request.types.js';
+import koaContext from './context.js';
+import {type Context} from './context.types.js';
+import koaResponse from './response.js';
+import {type KoaResponse} from './response.types.js';
 
 /**
  * Module dependencies.
@@ -27,13 +27,16 @@ import {type KoaResponse} from './response.types';
 
 const debug = _debug('koa:application');
 
-export default class App extends Emitter {
+class App extends Emitter {
   proxy: boolean;
   subdomainOffset: number;
   proxyIpHeader: string;
   maxIpsCount: number;
   env: string;
   compose: typeof compose;
+  /**
+   * The extendable koa context prototype object.
+   */
   context: Context;
   request: KoaRequest;
   req?: IncomingMessage;
@@ -99,6 +102,18 @@ export default class App extends Emitter {
     return this.toJSON();
   }
 
+  /**
+   * Use the given middleware `fn`.
+   *
+   * all function are async (or Promise returning) functions.
+   *
+   * @example
+   *
+   * app.use(async (ctx, next) => {
+   *  await next();
+   *  ctx.body = 'Hello World';
+   * })
+   */
   use(fn: Middleware): this {
     if (typeof fn !== 'function')
       throw new TypeError('middleware must be a function!');
@@ -211,6 +226,7 @@ export default class App extends Emitter {
 
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
     const message = error.stack || error.toString();
+    // eslint-disable-next-line unicorn/prefer-string-replace-all
     console.error(`\n${message.replace(/^/gm, '  ')}\n`);
   }
 
@@ -306,14 +322,15 @@ function respond(ctx: Context) {
  * Make HttpError available to consumers of the library so that consumers don't
  * have a direct dependency upon `http-errors`
  */
-module.exports = App;
-module.exports.HttpError = HttpError;
+export default App;
 
 /**
  * export types
  */
 
-export * from './context.types';
-export * from './request.types';
-export * from './response.types';
-export * from './compose';
+export * from './context.types.js';
+export * from './request.types.js';
+export * from './response.types.js';
+export * from './compose.js';
+
+export {default as HttpError} from 'http-errors';

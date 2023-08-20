@@ -9,9 +9,10 @@ import {type Stream} from 'node:stream';
 import {type Buffer} from 'node:buffer';
 import {type Socket} from 'node:net';
 import {type UnknownRecord, type Simplify} from 'type-fest';
-import {type Context} from './context.types';
-import type Application from './application';
-import {type KoaRequest} from './request.types';
+import {type Options as ContentDispositionOptions} from 'content-disposition';
+import {type Context} from './context.types.js';
+import type Application from './application.js';
+import {type KoaRequest} from './request.types.js';
 
 interface ResponseExtras extends UnknownRecord {
   app: Application;
@@ -137,14 +138,14 @@ type BaseResponse = {
    * @param {String} [alt]
    * @api public
    */
-  redirect(url: string, alt: string): void;
+  redirect(url: string, alt?: string): void;
   /**
    * Set Content-Disposition header to "attachment" with optional `filename`.
    *
    * @param {String} filename
    * @api public
    */
-  attachment(filename: string, options: UnknownRecord): void;
+  attachment(filename?: string, options?: ContentDispositionOptions): void;
   /**
    * Check whether the response is one of the listed types.
    * Pretty much the same as `that.request.is()`.

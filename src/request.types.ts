@@ -9,10 +9,10 @@ import {type ParsedUrlQuery} from 'node:querystring';
 import {type Socket} from 'node:net';
 import type accepts from 'accepts';
 import {type UnknownRecord, type Simplify} from 'type-fest';
-import type Application from './application';
-import {type Context} from './context.types';
-import {type KoaResponse} from './response.types';
-import {type IP} from './request';
+import type Application from './application.js';
+import {type Context} from './context.types.js';
+import {type KoaResponse} from './response.types.js';
+import {type IP} from './request.js';
 
 interface RequestExtras extends UnknownRecord {
   req: IncomingMessage;

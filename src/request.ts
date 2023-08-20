@@ -9,8 +9,8 @@ import parse from 'parseurl';
 import typeis from 'type-is';
 import fresh from 'fresh';
 import {type UnknownRecord} from 'type-fest';
-import only from './node-only';
-import {type InternalKoaRequest} from './request.types';
+import only from './node-only.js';
+import {type InternalKoaRequest} from './request.types.js';
 
 export const IP = Symbol('context#ip');
 
@@ -99,7 +99,7 @@ const koaRequest: InternalKoaRequest = {
   get href() {
     // support: `GET http://example.com/foo`
     if (/^https?:\/\//i.test(this.originalUrl!)) return this.originalUrl;
-    // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+
     return this.origin + this.originalUrl;
   },
 

@@ -1,7 +1,7 @@
 {
   "prettier": true,
   "parserOptions": {
-    "project": "./tsconfig.json"
+    "project": "./tsconfig.xo.json"
   },
   "rules": {
     "@typescript-eslint/prefer-nullish-coalescing": "off",

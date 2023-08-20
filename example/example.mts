@@ -1,15 +1,15 @@
-import Application from '../dist/cjs/application.js';
+import Application from '../dist/esm/application.mjs';
 
 const app = new Application();
 
-declare module '../dist/cjs/application' {
+declare module '../dist/esm/application.mjs' {
   interface Context {
     whatevs: () => string;
   }
 
-  // interface State {
-  //   foo: string;
-  // }
+  interface State {
+    foo: string;
+  }
 }
 
 console.log(app);

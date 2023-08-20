@@ -1,9 +1,20 @@
-import {type Context} from './context.types';
+import {type Context} from './context.types.js';
 
 export type Next<R = unknown> = () => Promise<R>;
 
-export type Middleware<R = unknown, NR = unknown> = (
-  context: Context,
+/**
+ * Composeable middleware.
+ */
+export type Middleware<C = Context, R = unknown, NR = unknown> = (
+  /**
+   * The Koa extended context object
+   */
+  context: C,
+  /**
+   * The next function to be call the next next middleware in the middleware chain.
+   * Always returns a promise and allows for fine grained middleware control flow.
+   *
+   */
   next: Next<NR>,
 ) => Promise<R>;
 
