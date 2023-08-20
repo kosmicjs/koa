@@ -4,6 +4,9 @@ export type Next<R = unknown> = () => Promise<R>;
 
 /**
  * Composeable middleware.
+ *
+ * @param context - The Koa extended context object
+ * @param next - The next function to be call the next next middleware in the middleware chain.
  */
 export type Middleware<C = Context, R = unknown, NR = unknown> = (
   /**

@@ -27,11 +27,45 @@ import {type KoaResponse} from './response.types.js';
 
 const debug = _debug('koa:application');
 
+export type Options = {
+  env?: string;
+  keys?: string[];
+  proxy?: boolean;
+  subdomainOffset?: number;
+  proxyIpHeader?: string;
+  maxIpsCount?: number;
+  compose?: typeof compose;
+  asyncLocalStorage?: boolean;
+};
+
 class App extends Emitter {
+  /**
+   * app.proxy
+   *
+   * when true proxy header fields will be trusted
+   */
   proxy: boolean;
+  /**
+   * app.subdomainOffset
+   *
+   * offset of .subdomains to ignore, default to 2
+   */
   subdomainOffset: number;
+  /**
+   * app.proxyIpHeader
+   *
+   * proxy ip header, default to X-Forwarded-For
+   */
   proxyIpHeader: string;
+  /**
+   * app.maxIpsCount
+   * max ips read from proxy ip header, default to 0 (means infinity)
+   */
   maxIpsCount: number;
+  /**
+   * app.env
+   * Defaults to NODE_ENV or "development"
+   */
   env: string;
   compose: typeof compose;
   /**
@@ -42,22 +76,40 @@ class App extends Emitter {
   req?: IncomingMessage;
   res?: ServerResponse;
   response: KoaResponse;
+  /**
+   * @prop app.keys
+   * array of signed cookie keys
+   */
   keys?: string[];
+  /**
+   * middleware
+   * @private
+   */
   middleware: Middleware[];
+  /**
+   * @name app.silent
+   * By default outputs all errors to stderr unless app.silent is true.
+   */
   silent?: boolean;
+  /**
+   * async local storage
+   * @private
+   */
   ctxStorage?: AsyncLocalStorage<Context>;
   [util.inspect.custom]?: () => UnknownRecord;
-
-  constructor(options?: {
-    env?: string;
-    keys?: string[];
-    proxy?: boolean;
-    subdomainOffset?: number;
-    proxyIpHeader?: string;
-    maxIpsCount?: number;
-    compose?: typeof compose;
-    asyncLocalStorage?: boolean;
-  }) {
+  /**
+   * Application constructor.
+   *
+   * create a new koa application.
+   *
+   * @example
+   * ```ts
+   * import App from '@kosmic/koa';
+   * const app = new App();
+   * ```
+   * @param options
+   */
+  constructor(options?: Options) {
     super();
     options = options || {};
     this.proxy = options.proxy || false;
