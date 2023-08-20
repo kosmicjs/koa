@@ -34,14 +34,6 @@ const context: InternalContext = {
   throw(...args) {
     throw createError(...args);
   },
-
-  /**
-   * Default error handling.
-   *
-   * @param {Error} err
-   * @api private
-   */
-
   onerror(err) {
     // don't do anything if there is no error.
     // this allows you to pass `this.onerror`

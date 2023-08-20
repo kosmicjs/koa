@@ -127,15 +127,72 @@ interface ContextResponseDelegation {
    * ctx.redirect('/cart');
    * ctx.body = 'Redirecting to shopping cart';
    * ```
+   *
+   * @param url - the url to redirect to or 'back'
+   * @param alt - the url to redirect to if 'back' is used
    */
   redirect: KoaResponse['redirect'];
+  /**
+   * Remove header `field`.
+   *
+   * @param field - the field name to remove
+   */
   remove: KoaResponse['remove'];
+  /**
+   * Vary on `field`.
+   *
+   * @param field - the field name to vary on
+   */
   vary: KoaResponse['vary'];
+  /**
+   * Returns true if the header identified by name is currently set in the outgoing headers.
+   * The header name matching is case-insensitive.
+   *
+   * Examples:
+   *
+   *     this.has('Content-Type');
+   *     // => true
+   *
+   *     this.get('content-type');
+   *     // => true
+   *
+   * @param field
+   */
   has: KoaResponse['has'];
+  /**
+   * Set header `field` to `val` or pass
+   * an object of header fields.
+   *
+   * Examples:
+   *
+   *    this.set('Foo', ['bar', 'baz']);
+   *    this.set('Accept', 'application/json');
+   *    this.set({ Accept: 'text/plain', 'X-API-Key': 'tobi' });
+   *
+   * @param {String|Object|Array} field
+   * @param {String} val
+   */
   set: KoaResponse['set'];
+  /**
+   * Append additional header `field` with value `val`.
+   *
+   * Examples:
+   *
+   * ```
+   * this.append('Link', ['<http://localhost/>', '<http://localhost:3000/>']);
+   * this.append('Set-Cookie', 'foo=bar; Path=/; HttpOnly');
+   * this.append('Warning', '199 Miscellaneous warning');
+   * ```
+   *
+   * @param field
+   * @param val
+   */
   append: KoaResponse['append'];
+  /**
+   * Flush any set headers and begin the body
+   */
+
   flushHeaders: KoaResponse['flushHeaders'];
-  // response access delegation
   /**
    * ctx.status=
    *
@@ -196,11 +253,50 @@ interface ContextResponseDelegation {
    * ```
    */
   length: KoaResponse['length'];
+  /**
+   * Return the response mime type void of
+   * parameters such as "charset".
+   */
   type: KoaResponse['type'];
+  /**
+   * Set the Last-Modified date using a string or a Date.
+   * Get the Last-Modified date in Date form, if it exists.
+   *
+   * @exmaple
+   * ```ts
+   * this.response.lastModified // => Mon, 15 Jun 2020 20:51:45 GMT
+   * this.response.lastModified = new Date();
+   * this.response.lastModified = '2013-09-13';
+   * ```
+   */
   lastModified: KoaResponse['lastModified'];
+  /**
+   * Get/Set the ETag of a response.
+   * This will normalize the quotes if necessary.
+   *
+   * @example
+   * ```ts
+   *     this.response.etag = 'md5hashsum';
+   *     this.response.etag = '"md5hashsum"';
+   *     this.response.etag = 'W/"123456789"';
+   * ```
+   */
   etag: KoaResponse['etag'];
   // response getter delegation
+  /**
+   * Check if a header has been written to the socket.
+   *
+   * @return {Boolean}
+   */
   readonly headerSent: KoaResponse['headerSent'];
+  /**
+   * Checks if the request is writable.
+   * Tests for the existence of the socket
+   * as node sometimes does not set it.
+   *
+   * @return {Boolean}
+   * @private
+   */
   readonly writable: KoaResponse['writable'];
 }
 
@@ -209,36 +305,264 @@ interface ContextResponseDelegation {
  */
 interface ContextRequestDelegation {
   // request method delegation
+
+  /**
+   * Return accepted languages or best fit based on `langs`.
+   *
+   * Given `Accept-Language: en;q=0.8, es, pt`
+   * an array sorted by quality is returned:
+   *
+   *     ['es', 'pt', 'en']
+   *
+   * @param {String|Array} lang(s)...
+   * @return {Array|String}
+   * @api public
+   */
   acceptsLanguages: KoaRequest['acceptsLanguages'];
+  /**
+   * Return accepted encodings or best fit based on `encodings`.
+   *
+   * Given `Accept-Encoding: gzip, deflate`
+   * an array sorted by quality is returned:
+   *
+   *     ['gzip', 'deflate']
+   *
+   * @param {String|Array} encoding(s)...
+   * @return {String|Array}
+   * @api public
+   */
   acceptsEncodings: KoaRequest['acceptsEncodings'];
+  /**
+   * Return accepted charsets or best fit based on `charsets`.
+   *
+   * Given `Accept-Charset: utf-8, iso-8859-1;q=0.2, utf-7;q=0.5`
+   * an array sorted by quality is returned:
+   *
+   *     ['utf-8', 'utf-7', 'iso-8859-1']
+   *
+   * @param {String|Array} charset(s)...
+   * @return {String|Array}
+   * @api public
+   */
   acceptsCharsets: KoaRequest['acceptsCharsets'];
+  /**
+   * Check if the given `type(s)` is acceptable, returning
+   * the best match when true, otherwise `false`, in which
+   * case you should respond with 406 "Not Acceptable".
+   *
+   * The `type` value may be a single mime type string
+   * such as "application/json", the extension name
+   * such as "json" or an array `["json", "html", "text/plain"]`. When a list
+   * or array is given the _best_ match, if any is returned.
+   *
+   * @example
+   * ```ts
+   *     // Accept: text/html
+   *     this.accepts('html');
+   *     // => "html"
+   *
+   *     // Accept: text/*, application/json
+   *     this.accepts('html');
+   *     // => "html"
+   *     this.accepts('text/html');
+   *     // => "text/html"
+   *     this.accepts('json', 'text');
+   *     // => "json"
+   *     this.accepts('application/json');
+   *     // => "application/json"
+   *
+   *     // Accept: text/*, application/json
+   *     this.accepts('image/png');
+   *     this.accepts('png');
+   *     // => false
+   *
+   *     // Accept: text/*;q=.5, application/json
+   *     this.accepts(['html', 'json']);
+   *     this.accepts('html', 'json');
+   *     // => "json"
+   * ```
+   *
+   * @param {String|Array} type(s)...
+   * @return {String|Array|false}
+   * @api public
+   */
   accepts: KoaRequest['accepts'];
+  /**
+   * Return request header.
+   *
+   * The `Referrer` header field is special-cased,
+   * both `Referrer` and `Referer` are interchangeable.
+   *
+   * Examples:
+   *
+   *     this.get('Content-Type');
+   *     // => "text/plain"
+   *
+   *     this.get('content-type');
+   *     // => "text/plain"
+   *
+   *     this.get('Something');
+   *     // => ''
+   *
+   * @param {String} field
+   * @return {String}
+   * @api public
+   */
   get: KoaRequest['get'];
+  /**
+   * Check if the incoming request contains the "Content-Type"
+   * header field and if it contains any of the given mime `type`s.
+   * If there is no request body, `null` is returned.
+   * If there is no content type, `false` is returned.
+   * Otherwise, it returns the first `type` that matches.
+   *
+   * @example
+   * ```ts
+   *     // With Content-Type: text/html; charset=utf-8
+   *     this.is('html'); // => 'html'
+   *     this.is('text/html'); // => 'text/html'
+   *     this.is('text/*', 'application/json'); // => 'text/html'
+   *
+   *     // When Content-Type is application/json
+   *     this.is('json', 'urlencoded'); // => 'json'
+   *     this.is('application/json'); // => 'application/json'
+   *     this.is('html', 'application/*'); // => 'application/json'
+   *
+   *     this.is('html'); // => false
+   * ```
+   * @param {String|String[]} [type]
+   * @param {String[]} [types]
+   * @return {String|false|null}
+   * @api public
+   */
   is: KoaRequest['is'];
-  // request access delegation
+  /**
+   * Get/set query string.
+   */
   querystring: KoaRequest['querystring'];
-  idempotent: KoaRequest['idempotent'];
-  socket: KoaRequest['socket'];
+  /**
+   * check if the request is idempotent
+   */
+  readonly idempotent: KoaRequest['idempotent'];
+  /**
+   * Return the request socket.
+   */
+  readonly socket: KoaRequest['socket'];
+  /**
+   * Get/set the search string. Same as
+   * request.querystring= but included for ubiquity.
+   */
   search: KoaRequest['search'];
+  /**
+   * Get/set the reqest method
+   */
   method: KoaRequest['method'];
+  /**
+   * Get/set the parsed query-string
+   */
   query: KoaRequest['query'];
+  /**
+   * Get/set the pathname, retaining the querystring when present
+   */
   path: KoaRequest['path'];
+  /**
+   * Get/set the request URL.
+   */
   url: KoaRequest['url'];
+  /**
+   * Get/set accept object.
+   * Lazily memoized.
+   */
   accept: KoaRequest['accept'];
   // request getter delegation
+  /**
+   * Get origin of URL.
+   */
   readonly origin: KoaRequest['origin'];
+  /**
+   * Get full request URL.
+   */
   readonly href: KoaRequest['href'];
+  /**
+   * Return subdomains as an array.
+   *
+   * Subdomains are the dot-separated parts of the host before the main domain
+   * of the app. By default, the domain of the app is assumed to be the last two
+   * parts of the host. This can be changed by setting `app.subdomainOffset`.
+   *
+   * For example, if the domain is "tobi.ferrets.example.com":
+   * If `app.subdomainOffset` is not set, this.subdomains is
+   * `["ferrets", "tobi"]`.
+   * If `app.subdomainOffset` is 3, this.subdomains is `["tobi"]`.
+   */
   readonly subdomains: KoaRequest['subdomains'];
+  /**
+   * Return the protocol string "http" or "https"
+   * when requested with TLS. When the proxy setting
+   * is enabled the "X-Forwarded-Proto" header
+   * field will be trusted. If you're running behind
+   * a reverse proxy that supplies https for you this
+   * may be enabled.
+   */
   readonly protocol: KoaRequest['protocol'];
+  /**
+   * Parse the "Host" header field host
+   * and support X-Forwarded-Host when a
+   * proxy is enabled.
+   */
   readonly host: KoaRequest['host'];
+  /**
+   * Parse the "Host" header field hostname
+   * and support X-Forwarded-Host when a
+   * proxy is enabled.
+   */
+
   readonly hostname: KoaRequest['hostname'];
+  /**
+   * Get WHATWG parsed URL.
+   * Lazily memoized.
+   */
   readonly URL: KoaRequest['URL'];
+  /**
+   * Return request header.
+   */
   readonly header: KoaRequest['header'];
+  /**
+   * Return request headers, same as request.header
+   */
   readonly headers: KoaRequest['headers'];
+  /**
+   * Shorthand for:
+   *
+   *    this.protocol == 'https'
+   */
   readonly secure: KoaRequest['secure'];
+  /**
+   * Check if the request is stale, aka
+   * "Last-Modified" and / or the "ETag" for the
+   * resource has changed.
+   */
   readonly stale: KoaRequest['stale'];
+  /**
+   * Check if the request is fresh, aka
+   * Last-Modified and/or the ETag
+   * still match.
+   */
   readonly fresh: KoaRequest['fresh'];
+  /**
+   * When `app.proxy` is `true`, parse
+   * the "X-Forwarded-For" ip address list.
+   *
+   * For example if the value was "client, proxy1, proxy2"
+   * you would receive the array `["client", "proxy1", "proxy2"]`
+   * where "proxy2" is the furthest down-stream.
+   */
   readonly ips: KoaRequest['ips'];
+  /**
+   * Return request's remote address
+   * When `app.proxy` is `true`, parse
+   * the "X-Forwarded-For" ip address list and return the first one
+   */
   readonly ip: KoaRequest['ip'];
 }
 
@@ -271,8 +595,19 @@ interface ContextExtras<UserState = State> {
    * A reference to the current application instance
    */
   app: Application;
+  /**
+   * Allow bypassing the Koa response handling when setting this property to true.
+   *
+   * You must end the response manually when using this option.
+   */
   respond: boolean;
+  /**
+   * The original request URL
+   */
   originalUrl?: string;
+  /**
+   * @private
+   */
   [COOKIES]?: Cookies;
   /**
    * State is the recommended namespace for passing information
@@ -286,6 +621,7 @@ interface ContextExtras<UserState = State> {
    * To add typed properties to State, declare them in
    * the module of your choosing:
    *
+   * @example
    * ```ts
    * declare module '@kosmic/koa' {
    *   interface State {

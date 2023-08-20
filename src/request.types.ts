@@ -250,34 +250,35 @@ type BaseRequest = {
    * such as "json" or an array `["json", "html", "text/plain"]`. When a list
    * or array is given the _best_ match, if any is returned.
    *
-   * Examples:
-   *
+   * @example
+   * ```ts
    *     // Accept: text/html
-   *     (this as unknown as Application).accepts('html');
+   *     this.accepts('html');
    *     // => "html"
    *
    *     // Accept: text/*, application/json
-   *     (this as unknown as Application).accepts('html');
+   *     this.accepts('html');
    *     // => "html"
-   *     (this as unknown as Application).accepts('text/html');
+   *     this.accepts('text/html');
    *     // => "text/html"
-   *     (this as unknown as Application).accepts('json', 'text');
+   *     this.accepts('json', 'text');
    *     // => "json"
-   *     (this as unknown as Application).accepts('application/json');
+   *     this.accepts('application/json');
    *     // => "application/json"
    *
    *     // Accept: text/*, application/json
-   *     (this as unknown as Application).accepts('image/png');
-   *     (this as unknown as Application).accepts('png');
+   *     this.accepts('image/png');
+   *     this.accepts('png');
    *     // => false
    *
    *     // Accept: text/*;q=.5, application/json
-   *     (this as unknown as Application).accepts(['html', 'json']);
-   *     (this as unknown as Application).accepts('html', 'json');
+   *     this.accepts(['html', 'json']);
+   *     this.accepts('html', 'json');
    *     // => "json"
+   * ```
    *
-   * @param {String|Array}, type(s)...
-   * @return {String|Array|false},
+   * @param {String|Array} type(s)...
+   * @return {String|Array|false}
    * @api public
    */
   accepts(...args: string[]): string | string[] | boolean;
@@ -325,25 +326,25 @@ type BaseRequest = {
    * header field and if it contains any of the given mime `type`s.
    * If there is no request body, `null` is returned.
    * If there is no content type, `false` is returned.
-   * Otherwise, it returns the first `type` this matches.
+   * Otherwise, it returns the first `type` that matches.
    *
-   * Examples:
-   *
+   * @example
+   * ```ts
    *     // With Content-Type: text/html; charset=utf-8
-   *     (this as unknown as Application).is('html'); // => 'html'
-   *     (this as unknown as Application).is('text/html'); // => 'text/html'
-   *     (this as unknown as Application).is('text/*', 'application/json'); // => 'text/html'
+   *     this.is('html'); // => 'html'
+   *     this.is('text/html'); // => 'text/html'
+   *     this.is('text/*', 'application/json'); // => 'text/html'
    *
    *     // When Content-Type is application/json
-   *     (this as unknown as Application).is('json', 'urlencoded'); // => 'json'
-   *     (this as unknown as Application).is('application/json'); // => 'application/json'
-   *     (this as unknown as Application).is('html', 'application/*'); // => 'application/json'
+   *     this.is('json', 'urlencoded'); // => 'json'
+   *     this.is('application/json'); // => 'application/json'
+   *     this.is('html', 'application/*'); // => 'application/json'
    *
-   *     (this as unknown as Application).is('html'); // => false
-   *
-   * @param {String|String[]}, [type]
-   * @param {String[]}, [types]
-   * @return {String|false|null},
+   *     this.is('html'); // => false
+   * ```
+   * @param {String|String[]} [type]
+   * @param {String[]} [types]
+   * @return {String|false|null}
    * @api public
    */
   is(type: string, ...types: string[]): string | boolean | null;
