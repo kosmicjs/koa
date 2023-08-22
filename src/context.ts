@@ -5,7 +5,7 @@
 import {inspect, format} from 'node:util';
 import {Buffer} from 'node:buffer';
 import {type OutgoingHttpHeaders} from 'node:http';
-import createError from 'http-errors';
+import createError, {type UnknownError, type HttpError} from 'http-errors';
 import httpAssert from 'http-assert';
 import statuses from 'statuses';
 import Cookies from 'cookies';
@@ -31,8 +31,8 @@ const context: InternalContext = {
     };
   },
   assert: httpAssert,
-  throw(...args) {
-    throw createError(...args);
+  throw(n, ...args) {
+    throw createError<typeof n extends number ? number : any>(n, ...args);
   },
   onerror(err) {
     // don't do anything if there is no error.

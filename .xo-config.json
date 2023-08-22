@@ -18,6 +18,7 @@
     "no-warning-comments": "off",
     "max-depth": "off",
     "complexity": "off",
-    "no-multi-assign": "off"
+    "no-multi-assign": "off",
+    "accessor-pairs": "error"
   }
 }

@@ -1,4 +1,3 @@
-/* eslint-disable grouped-accessor-pairs */
 import {Buffer} from 'node:buffer';
 import assert from 'node:assert';
 import {extname} from 'node:path';
@@ -193,19 +192,6 @@ const koaResponse: InternalKoaResponse = {
   },
 
   /**
-   * Set Content-Length field to `n`.
-   *
-   * @param {Number} n
-   * @api public
-   */
-
-  set length(n) {
-    if (!this.has('Transfer-Encoding')) {
-      this.set('Content-Length', n);
-    }
-  },
-
-  /**
    * Return parsed response Content-Length when present.
    *
    * @return {Number}
@@ -222,6 +208,18 @@ const koaResponse: InternalKoaResponse = {
     if (typeof body === 'string') return Buffer.byteLength(body);
     if (Buffer.isBuffer(body)) return body.length;
     return Buffer.byteLength(JSON.stringify(body));
+  },
+  /**
+   * Set Content-Length field to `n`.
+   *
+   * @param {Number} n
+   * @api public
+   */
+
+  set length(n) {
+    if (!this.has('Transfer-Encoding')) {
+      this.set('Content-Length', n);
+    }
   },
 
   /**
@@ -299,7 +297,19 @@ const koaResponse: InternalKoaResponse = {
     if (filename) this.type = extname(filename);
     this.set('Content-Disposition', contentDisposition(filename, options));
   },
+  /**
+   * Return the response mime type void of
+   * parameters such as "charset".
+   *
+   * @return {String}
+   * @api public
+   */
 
+  get type() {
+    const type = this.get('Content-Type') as string;
+    if (!type) return '';
+    return type.split(';', 1)[0];
+  },
   /**
    * Set Content-Type response header with `type` through `mime.lookup()`
    * when it does not contain a charset.
@@ -326,6 +336,18 @@ const koaResponse: InternalKoaResponse = {
   },
 
   /**
+   * Get the Last-Modified date in Date form, if it exists.
+   *
+   * @return {Date}
+   * @api public
+   */
+
+  get lastModified() {
+    const date = this.get('last-modified') as string;
+    if (date) return new Date(date);
+    return undefined;
+  },
+  /**
    * Set the Last-Modified date using a string or a Date.
    *
    *     this.response!.lastModified = new Date();
@@ -341,16 +363,14 @@ const koaResponse: InternalKoaResponse = {
   },
 
   /**
-   * Get the Last-Modified date in Date form, if it exists.
+   * Get the ETag of a response.
    *
-   * @return {Date}
+   * @return {String}
    * @api public
    */
 
-  get lastModified() {
-    const date = this.get('last-modified') as string;
-    if (date) return new Date(date);
-    return undefined;
+  get etag() {
+    return this.get('ETag') as string;
   },
 
   /**
@@ -368,31 +388,6 @@ const koaResponse: InternalKoaResponse = {
   set etag(val: string) {
     if (!/^(W\/)?"/.test(val)) val = `"${val}"`;
     this.set('ETag', val);
-  },
-
-  /**
-   * Get the ETag of a response.
-   *
-   * @return {String}
-   * @api public
-   */
-
-  get etag() {
-    return this.get('ETag') as string;
-  },
-
-  /**
-   * Return the response mime type void of
-   * parameters such as "charset".
-   *
-   * @return {String}
-   * @api public
-   */
-
-  get type() {
-    const type = this.get('Content-Type') as string;
-    if (!type) return '';
-    return type.split(';', 1)[0];
   },
 
   /**

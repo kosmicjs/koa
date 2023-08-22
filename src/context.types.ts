@@ -3,8 +3,11 @@ import {type IncomingMessage, type ServerResponse} from 'node:http';
 import type httpAssert from 'http-assert';
 import type Cookies from 'cookies';
 import type {UnknownRecord, SetOptional, Simplify} from 'type-fest';
-import {type HttpError} from 'http-errors';
-import type createError from 'http-errors';
+import createHttpError, {
+  type HttpError,
+  type CreateHttpError,
+  type UnknownError,
+} from 'http-errors';
 import type {KoaResponse} from './response.types.js';
 import type {KoaRequest} from './request.types.js';
 import type Application from './application.js';
@@ -81,7 +84,7 @@ interface ContextBase {
    *
    * Note: `status` should only be passed as the first parameter.
    */
-  throw(...args: Simplify<Parameters<typeof createError>>): never;
+  throw(n: number | UnknownError, ...args: UnknownError[]): never;
   /**
    * Default error handling.
    *
