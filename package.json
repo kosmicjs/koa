@@ -29,17 +29,17 @@
   "exports": {
     ".": {
       "import": {
-        "default": "./dist/esm/application.mjs",
-        "types": "./dist/esm/application.d.mts"
+        "types": "./dist/esm/application.d.mts",
+        "default": "./dist/esm/application.mjs"
       },
       "require": {
-        "default": "./dist/cjs/application.js",
-        "types": "./dist/cjs/application.d.ts"
+        "types": "./dist/cjs/application.d.ts",
+        "default": "./dist/cjs/application.js"
       }
     }
   },
-  "main": "dist/application.js",
-  "types": "dist/application.d.ts",
+  "main": "./dist/cjs/application.js",
+  "types": "./dist/cjs/application.d.ts",
   "files": [
     "dist"
   ],
@@ -49,7 +49,8 @@
     "compile": "duel -d",
     "dev": "npm build --watch",
     "prepublishOnly": "npm run build",
-    "test": "npm run build && jest --forceExit"
+    "test": "npm run build && jest --forceExit",
+    "watch": "npm run clean && tsc --watch"
   },
   "prettier": {
     "plugins": [
@@ -115,6 +116,7 @@
     "@types/fresh": "^0.5.0",
     "@types/http-assert": "^1.5.3",
     "@types/http-errors": "^2.0.1",
+    "@types/koa": "^2.13.8",
     "@types/mime-types": "^2.1.1",
     "@types/node": "~20.5.1",
     "@types/on-finished": "^2.3.1",

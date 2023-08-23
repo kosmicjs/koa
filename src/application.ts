@@ -85,7 +85,7 @@ class App extends Emitter {
    * middleware
    * @private
    */
-  middleware: Middleware[];
+  private readonly middleware: Middleware[];
   /**
    * @name app.silent
    * By default outputs all errors to stderr unless app.silent is true.
@@ -95,7 +95,7 @@ class App extends Emitter {
    * async local storage
    * @private
    */
-  ctxStorage?: AsyncLocalStorage<Context>;
+  private readonly ctxStorage?: AsyncLocalStorage<Context>;
   [util.inspect.custom]?: () => UnknownRecord;
   /**
    * Application constructor.
