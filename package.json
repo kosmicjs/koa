@@ -36,6 +36,16 @@
         "types": "./dist/cjs/application.d.ts",
         "default": "./dist/cjs/application.js"
       }
+    },
+    "./compose": {
+      "import": {
+        "types": "./dist/esm/compose.d.mts",
+        "default": "./dist/esm/compose.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/compose.d.ts",
+        "default": "./dist/cjs/compose.js"
+      }
     }
   },
   "main": "./dist/cjs/application.js",

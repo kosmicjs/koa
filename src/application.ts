@@ -383,6 +383,6 @@ export default App;
 export * from './context.types.js';
 export * from './request.types.js';
 export * from './response.types.js';
-export * from './compose.js';
+export {type Middleware, type Next, default as compose} from './compose.js';
 
 export {default as HttpError} from 'http-errors';
