@@ -94,7 +94,7 @@ const context: InternalContext = {
     const code = statuses[statusCode];
     const msg = err.expose ? err.message : code;
     this.status = err.status = statusCode;
-    this.length = Buffer.byteLength(msg!);
+    this.length = Buffer.byteLength(msg || '');
     res.end(msg);
   },
 

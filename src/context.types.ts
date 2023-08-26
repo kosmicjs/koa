@@ -100,7 +100,7 @@ interface ContextBase {
 /**
  * The context object delgate for the response
  */
-interface ContextResponseDelegation {
+interface ContextResponseDelegation<ResponseBody> {
   /**
    * Set Content-Disposition header to "attachment" with optional `filename`.
    *
@@ -243,7 +243,7 @@ interface ContextResponseDelegation {
    * })
    * ```
    */
-  body: KoaResponse['body'];
+  body: KoaResponse<ResponseBody>['body'];
   /**
    * ctx.length
    *
@@ -645,9 +645,12 @@ export interface ExtendableContext {}
 /**
  * The internal context object meant for internal use only
  */
-export type InternalContext<State = UnknownRecord> = ContextBase &
+export type InternalContext<
+  State = UnknownRecord,
+  ResponseBody = unknown,
+> = ContextBase &
   Partial<ContextExtras<State>> &
-  Partial<ContextResponseDelegation> &
+  Partial<ContextResponseDelegation<ResponseBody>> &
   Partial<ContextRequestDelegation>;
 
 /**
@@ -658,11 +661,11 @@ export interface State extends UnknownRecord {}
 /**
  * The extendable context object
  */
-export interface Context<UserState = State>
+export interface Context<CtxState = State, ResponseBody = unknown>
   extends Simplify<
     ContextBase &
-      ContextExtras<UserState> &
-      ContextResponseDelegation &
+      ContextExtras<CtxState> &
+      ContextResponseDelegation<ResponseBody> &
       ContextRequestDelegation &
       ExtendableContext
   > {}

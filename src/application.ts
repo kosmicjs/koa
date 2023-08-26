@@ -306,7 +306,7 @@ class App extends Emitter {
  * Response helper.
  */
 
-function respond(ctx: Context) {
+function respond(ctx: Context<unknown, any>) {
   // allow bypassing koa
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-boolean-literal-compare
   if (ctx.respond === false) return;
@@ -314,7 +314,7 @@ function respond(ctx: Context) {
   if (!ctx.writable) return;
 
   const res = ctx.res;
-  let body = ctx.body!;
+  let body = ctx.body;
   const code = ctx.status;
 
   // ignore body
@@ -350,7 +350,7 @@ function respond(ctx: Context) {
 
     if (!res.headersSent) {
       ctx.type = 'text';
-      ctx.length = Buffer.byteLength(body);
+      ctx.length = Buffer.byteLength(body as string);
     }
 
     return res.end(body);
@@ -364,7 +364,7 @@ function respond(ctx: Context) {
   // body: json
   body = JSON.stringify(body);
   if (!res.headersSent) {
-    ctx.length = Buffer.byteLength(body);
+    ctx.length = Buffer.byteLength(body as string);
   }
 
   res.end(body);

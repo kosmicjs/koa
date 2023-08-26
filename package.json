@@ -33,8 +33,8 @@
         "default": "./dist/esm/application.mjs"
       },
       "require": {
-        "types": "./dist/cjs/application.d.ts",
-        "default": "./dist/cjs/application.js"
+        "types": "./dist/application.d.ts",
+        "default": "./dist/application.js"
       }
     },
     "./compose": {
@@ -43,8 +43,8 @@
         "default": "./dist/esm/compose.mjs"
       },
       "require": {
-        "types": "./dist/cjs/compose.d.ts",
-        "default": "./dist/cjs/compose.js"
+        "types": "./dist/compose.d.ts",
+        "default": "./dist/compose.js"
       }
     }
   },
@@ -56,7 +56,7 @@
   "scripts": {
     "build": "npm run clean && npm run compile",
     "clean": "rimraf -rf ./dist",
-    "compile": "duel -d",
+    "compile": "duel",
     "dev": "npm build --watch",
     "prepublishOnly": "npm run build",
     "test": "npm run build && jest --forceExit",

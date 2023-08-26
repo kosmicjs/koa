@@ -25,7 +25,7 @@ interface ResponseExtras extends UnknownRecord {
   ctx: Context;
 }
 
-type BaseResponse = {
+type BaseResponse<Body = UnknownRecord> = {
   /**
    * Return the request socket.
    *
@@ -67,7 +67,7 @@ type BaseResponse = {
    * @return {Mixed}
    * @api public
    */
-  body: Stream | Buffer | string | UnknownRecord | null;
+  body: unknown;
   /**
    * Return parsed response Content-Length when present.
    *
@@ -257,4 +257,5 @@ export type InternalKoaResponse = BaseResponse & Partial<ResponseExtras>;
 /**
  * The extendable type for the response object.
  */
-export interface KoaResponse extends Simplify<BaseResponse & ResponseExtras> {}
+export interface KoaResponse<Body = unknown>
+  extends Simplify<BaseResponse<Body> & ResponseExtras> {}
