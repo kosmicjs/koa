@@ -114,7 +114,8 @@ const context: InternalContext = {
   },
 
   [inspect.custom]() {
-    return this.toJSON();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return this.inspect();
   },
 };
 

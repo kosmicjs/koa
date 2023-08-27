@@ -9,6 +9,7 @@ const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 console.log('running ');
 
 for (const file of files) {
+  if (!file.endsWith('.mjs')) continue;
   const fp = path.join(__dirname, '..', 'dist', 'esm', file);
   console.log('file', fp);
   const fileContents = await readFile(fp, 'utf8');
