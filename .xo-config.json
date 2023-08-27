@@ -12,7 +12,6 @@
     "@typescript-eslint/ban-types": "off",
     "unicorn/prevent-abbreviations": "off",
     "unicorn/prefer-module": "off",
-    "import/extensions": "off",
     "capitalized-comments": "off",
     "unicorn/no-array-reduce": "off",
     "no-warning-comments": "off",

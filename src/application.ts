@@ -12,7 +12,7 @@ import statuses from 'statuses';
 import onFinished from 'on-finished';
 import {HttpError} from 'http-errors';
 import _debug from 'debug';
-import {type Context} from './context.types';
+import {type Context} from './context.types.js';
 import compose, {type Middleware} from './compose.js';
 import only from './node-only.js';
 import koaRequest from './request.js';
