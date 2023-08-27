@@ -39,6 +39,10 @@ export type Options = {
 };
 
 class App extends Emitter {
+  /**
+   * Make HttpError available to consumers of the library so that consumers don't
+   * have a direct dependency upon `http-errors`
+   */
   static HttpError = HttpError;
   /**
    * app.proxy
@@ -73,9 +77,21 @@ class App extends Emitter {
    * The extendable koa context prototype object.
    */
   context: Context;
+  /**
+   * The koa request object.
+   */
   request: KoaRequest;
+  /**
+   * The incoming node request object.
+   */
   req?: IncomingMessage;
+  /**
+   * The node response object.
+   */
   res?: ServerResponse;
+  /**
+   * The koa response object.
+   */
   response: KoaResponse;
   /**
    * @prop app.keys
@@ -379,10 +395,6 @@ export {type Context, type State} from './context.types.js';
 export {type KoaRequest} from './request.types.js';
 export {type KoaResponse} from './response.types.js';
 
-/**
- * Make HttpError available to consumers of the library so that consumers don't
- * have a direct dependency upon `http-errors`
- */
 export default App;
 
 /* -- EXPORTS -- */
