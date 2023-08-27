@@ -1,8 +1,8 @@
-import Application from '../dist/cjs/application.js';
+import Application from '../dist/application.js';
 
 const app = new Application();
 
-declare module '../dist/cjs/application' {
+declare module '../dist/application' {
   interface Context {
     whatevs: () => string;
   }

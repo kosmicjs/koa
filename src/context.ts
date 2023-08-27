@@ -114,20 +114,6 @@ const context: InternalContext = {
   },
 };
 
-/**
- * Custom inspection implementation for newer Node.js versions.
- *
- * @return {Object}
- * @api public
- */
-
-module.exports = context;
-/* istanbul ignore else */
-if (inspect.custom) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  module.exports[inspect.custom] = module.exports.inspect;
-}
-
 delegate(context, 'response')
   .method('attachment')
   .method('redirect')
@@ -183,3 +169,19 @@ delegate(context, 'request')
   .getter('ip');
 
 export default context;
+
+/**
+ * Custom inspection implementation for newer Node.js versions.
+ *
+ * @return {Object}
+ * @api public
+ */
+
+/* -- EXPORTS -- */
+module.exports = context;
+/* istanbul ignore else */
+if (inspect.custom) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  module.exports[inspect.custom] = module.exports.inspect;
+}
+/* -- EXPORTS -- */

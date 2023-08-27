@@ -577,11 +577,13 @@ const koaResponse: InternalKoaResponse = {
   },
 };
 
+/* -- EXPORTS -- */
 module.exports = koaResponse;
 /* istanbul ignore else */
 if (inspect.custom) {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   module.exports[inspect.custom] = module.exports.inspect;
 }
+/* -- EXPORTS -- */
 
 export default koaResponse;

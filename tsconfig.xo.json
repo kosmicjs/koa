@@ -3,5 +3,5 @@
   "compilerOptions": {
     "rootDir": "."
   },
-  "include": ["src/**/*", "test/**/*", "examples/**/*", "dist/**/*"]
+  "include": ["src/**/*", "test/**/*", "example/**/*", "dist/**/*"]
 }

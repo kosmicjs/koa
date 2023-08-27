@@ -57,5 +57,8 @@ function compose(middleware: Middleware[]) {
 }
 
 export default compose;
+
+/* -- EXPORTS -- */
 module.exports.default = compose;
 module.exports = compose;
+/* -- EXPORTS -- */

@@ -10,7 +10,7 @@ import process from 'node:process';
 import {type UnknownRecord} from 'type-fest';
 import statuses from 'statuses';
 import onFinished from 'on-finished';
-import {type HttpError} from 'http-errors';
+import {HttpError} from 'http-errors';
 import _debug from 'debug';
 import compose, {type Middleware} from './compose.js';
 import only from './node-only.js';
@@ -39,6 +39,7 @@ export type Options = {
 };
 
 class App extends Emitter {
+  static HttpError = HttpError;
   /**
    * app.proxy
    *
@@ -371,18 +372,19 @@ function respond(ctx: Context<unknown, any>) {
 }
 
 /**
- * Make HttpError available to consumers of the library so that consumers don't
- * have a direct dependency upon `http-errors`
- */
-export default App;
-
-/**
  * export types
  */
-
 export * from './context.types.js';
 export * from './request.types.js';
 export * from './response.types.js';
 export {type Middleware, type Next, default as compose} from './compose.js';
 
-export {default as HttpError} from 'http-errors';
+/**
+ * Make HttpError available to consumers of the library so that consumers don't
+ * have a direct dependency upon `http-errors`
+ */
+export default App;
+
+/* -- EXPORTS -- */
+module.exports = App;
+/* -- EXPORTS -- */
