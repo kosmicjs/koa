@@ -1,5 +1,9 @@
 import {type Context} from './context.types.js';
 
+/**
+ * The next function caller in a Koa Middleware chain.
+ * Always returns a promise and allows for fine grained middleware control flow.
+ */
 export type Next = () => Promise<unknown>;
 
 /**
@@ -59,6 +63,5 @@ function compose(middleware: Middleware[]) {
 export default compose;
 
 /* -- EXPORTS -- */
-module.exports.default = compose;
 module.exports = compose;
 /* -- EXPORTS -- */

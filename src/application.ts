@@ -12,12 +12,12 @@ import statuses from 'statuses';
 import onFinished from 'on-finished';
 import {HttpError} from 'http-errors';
 import _debug from 'debug';
+import {type Context} from './context.types';
 import compose, {type Middleware} from './compose.js';
 import only from './node-only.js';
 import koaRequest from './request.js';
 import {type KoaRequest} from './request.types.js';
 import koaContext from './context.js';
-import {type Context} from './context.types.js';
 import koaResponse from './response.js';
 import {type KoaResponse} from './response.types.js';
 
@@ -374,10 +374,10 @@ function respond(ctx: Context<unknown, any>) {
 /**
  * export types
  */
-export * from './context.types.js';
-export * from './request.types.js';
-export * from './response.types.js';
-export {type Middleware, type Next, default as compose} from './compose.js';
+export {type Middleware, type Next} from './compose.js';
+export {type Context, type State} from './context.types.js';
+export {type KoaRequest} from './request.types.js';
+export {type KoaResponse} from './response.types.js';
 
 /**
  * Make HttpError available to consumers of the library so that consumers don't

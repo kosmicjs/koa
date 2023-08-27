@@ -112,6 +112,10 @@ const context: InternalContext = {
   set cookies(_cookies) {
     this[COOKIES] = _cookies;
   },
+
+  [inspect.custom]() {
+    return this.toJSON();
+  },
 };
 
 delegate(context, 'response')
@@ -179,9 +183,4 @@ export default context;
 
 /* -- EXPORTS -- */
 module.exports = context;
-/* istanbul ignore else */
-if (inspect.custom) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  module.exports[inspect.custom] = module.exports.inspect;
-}
 /* -- EXPORTS -- */

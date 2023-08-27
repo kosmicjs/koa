@@ -705,15 +705,14 @@ const koaRequest: InternalKoaRequest = {
   toJSON() {
     return only(this, ['method', 'url', 'header']);
   },
+
+  [inspect.custom]() {
+    return this.inspect();
+  },
 };
 
 /* -- EXPORTS -- */
 module.exports = koaRequest;
-/* istanbul ignore else */
-if (inspect.custom) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  module.exports[inspect.custom] = module.exports.inspect;
-}
 /* -- EXPORTS -- */
 
 export default koaRequest;
