@@ -330,8 +330,8 @@ function respond(ctx: Context<unknown, any>) {
 
   if (!ctx.writable) return;
 
-  const res = ctx.res;
-  let body = ctx.body;
+  const {res} = ctx;
+  let {body} = ctx;
   const code = ctx.status;
 
   // ignore body

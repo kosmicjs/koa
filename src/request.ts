@@ -1,4 +1,4 @@
-import {URL, format as stringify} from 'node:url';
+import {format as stringify} from 'node:url';
 import {inspect} from 'node:util';
 import net from 'node:net';
 import qs from 'node:querystring';
@@ -243,7 +243,7 @@ const koaRequest: InternalKoaRequest = {
    */
 
   get host(): string {
-    const proxy = this.app!.proxy;
+    const {proxy} = this.app!;
     let host = proxy && this.get('X-Forwarded-Host');
     if (!host) {
       if (this.req!.httpVersionMajor >= 2) host = this.get(':authority');
@@ -264,7 +264,7 @@ const koaRequest: InternalKoaRequest = {
    */
 
   get hostname() {
-    const host = this.host;
+    const {host} = this;
     if (!host) return '';
     if (host.startsWith('[')) return (this.URL.hostname as string) || ''; // IPv6
     return host.split(':', 1)[0];
@@ -302,7 +302,7 @@ const koaRequest: InternalKoaRequest = {
    */
 
   get fresh() {
-    const method = this.method;
+    const {method} = this;
     const s = this.ctx!.status;
 
     // GET or HEAD for weak freshness validation only
@@ -428,7 +428,7 @@ const koaRequest: InternalKoaRequest = {
    */
 
   get ips() {
-    const proxy = this.app!.proxy;
+    const {proxy} = this.app!;
     const val = this.get(this.app!.proxyIpHeader);
     let ips = proxy && val ? val.split(/\s*,\s*/) : [];
     if (this.app!.maxIpsCount > 0) {
@@ -477,7 +477,7 @@ const koaRequest: InternalKoaRequest = {
 
   get subdomains() {
     const offset = this.app!.subdomainOffset;
-    const hostname = this.hostname;
+    const {hostname} = this;
     if (net.isIP(hostname)) return [];
     return hostname.split('.').reverse().slice(offset);
   },

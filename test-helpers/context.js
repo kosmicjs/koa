@@ -1,11 +1,14 @@
 'use strict';
 
 const Stream = require('node:stream');
+// eslint-disable-next-line import/extensions
 const Koa = require('../dist/application');
 
 module.exports = (req, res, app) => {
   const socket = new Stream.Duplex();
+  // eslint-disable-next-line prefer-object-spread
   req = Object.assign({headers: {}, socket}, Stream.Readable.prototype, req);
+  // eslint-disable-next-line prefer-object-spread
   res = Object.assign({_headers: {}, socket}, Stream.Writable.prototype, res);
   req.socket.remoteAddress = req.socket.remoteAddress || '127.0.0.1';
   app = app || new Koa();

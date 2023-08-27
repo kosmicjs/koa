@@ -500,6 +500,7 @@ const koaResponse: InternalKoaResponse = {
     const prev = this.get(field) as string[] | string | undefined;
 
     if (prev) {
+      // eslint-disable-next-line unicorn/prefer-spread
       val = Array.isArray(prev) ? prev.concat(val) : [prev].concat(val);
     }
 
@@ -536,7 +537,7 @@ const koaResponse: InternalKoaResponse = {
     // https://stackoverflow.com/questions/16254385/undocumented-response-finished-in-node-js
     if (this.res!.writableEnded || this.res!.finished) return false;
 
-    const socket = this.res!.socket;
+    const {socket} = this.res!;
     // There are already pending outgoing res, but still writable
     // https://github.com/nodejs/node/blob/v4.4.7/lib/_http_server.js#L486
     if (!socket) return true;
