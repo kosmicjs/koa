@@ -1,6 +1,6 @@
 {
   "name": "@kosmic/koa",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Typescript first drop in replacement for koa",
   "keywords": [
     "koa",
