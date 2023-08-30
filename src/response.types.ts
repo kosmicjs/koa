@@ -25,7 +25,9 @@ interface ResponseExtras extends UnknownRecord {
   ctx: Context;
 }
 
-type BaseResponse<Body = UnknownRecord> = {
+interface ResponseBody {}
+
+export interface BaseResponse<Body = ResponseBody> {
   /**
    * Return the request socket.
    *
@@ -247,7 +249,7 @@ type BaseResponse<Body = UnknownRecord> = {
    * Flush any set headers and begin the body
    */
   flushHeaders(): void;
-};
+}
 
 /**
  * This type is meant to be used internally by Kosmic.

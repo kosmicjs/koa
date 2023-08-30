@@ -392,8 +392,8 @@ function respond(ctx: Context<unknown, any>) {
  */
 export {type Middleware, type Next} from './compose.js';
 export {type Context, type State} from './context.types.js';
-export {type KoaRequest} from './request.types.js';
-export {type KoaResponse} from './response.types.js';
+export {type KoaRequest, type Request} from './request.types.js';
+export {type KoaResponse, type Response} from './response.types.js';
 export default App;
 
 /* -- EXPORTS -- */
