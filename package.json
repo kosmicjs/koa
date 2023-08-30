@@ -58,7 +58,6 @@
     "clean": "rimraf -rf ./dist",
     "compile": "duel && node scripts/remove-cjs-exports.mjs",
     "dev": "npm build --watch",
-    "prepublishOnly": "npm run build",
     "test": "npm run build && jest --forceExit",
     "watch": "npm run clean && tsc --watch"
   },

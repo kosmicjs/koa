@@ -255,6 +255,12 @@ type BaseResponse<Body = UnknownRecord> = {
 export type InternalKoaResponse = BaseResponse & Partial<ResponseExtras>;
 
 /**
+ * To help maintain type compatibility with current third party types we
+ * can just use the names of the types instead of the types themselves for extending where we want
+ */
+export interface Request {}
+
+/**
  * The extendable type for the response object.
  */
 export interface KoaResponse<Body = unknown>

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-empty-interface */
 import {type IncomingMessage, type ServerResponse} from 'node:http';
 import type httpAssert from 'http-assert';
 import type Cookies from 'cookies';

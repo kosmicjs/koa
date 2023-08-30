@@ -389,4 +389,11 @@ type BaseRequest = {
 export interface InternalKoaRequest
   extends Simplify<BaseRequest & Partial<RequestExtras>> {}
 
-export interface KoaRequest extends Simplify<BaseRequest & RequestExtras> {}
+/**
+ * To help maintain type compatibility with current third party types we
+ * can just use the names of the types instead of the types themselves for extending where we want
+ */
+interface Request {}
+
+export interface KoaRequest
+  extends Simplify<BaseRequest & RequestExtras & Request> {}
