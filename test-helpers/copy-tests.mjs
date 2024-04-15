@@ -23,9 +23,13 @@ const fileRoot = path.join(process.cwd(), '__tests__');
 for (const file of files) {
   if (file.endsWith('.js')) {
     const content = await fs.readFile(path.join(fileRoot, file), 'utf8');
-    await fs.writeFile(
-      path.join(fileRoot, file),
-      content.replaceAll(/require\('..\/..'\)/g, "require('../..').default"),
-    );
+    const editedContent = content
+      .replaceAll(/require\('\.\.\/?'\)/g, "require('..')")
+      .replaceAll(/require\('\.\.\/\.\.\/?'\)/g, "require('../..').default")
+      .replaceAll(
+        "require('../../lib/context')",
+        "require('../../dist/context')",
+      );
+    await fs.writeFile(path.join(fileRoot, file), editedContent);
   }
 }

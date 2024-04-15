@@ -54,7 +54,7 @@ function compose(middleware: Middleware[]) {
       try {
         return Promise.resolve(fn(context, dispatch.bind(null, i + 1)));
       } catch (error) {
-        return Promise.reject(error);
+        return Promise.reject(error); // eslint-disable-line @typescript-eslint/prefer-promise-reject-errors
       }
     }
   };

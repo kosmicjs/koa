@@ -58,7 +58,7 @@
     "clean": "rimraf -rf ./dist",
     "compile": "tsc",
     "dev": "npm build --watch",
-    "test": "npm run build && jest --forceExit",
+    "test": "node test-helpers/copy-tests.mjs && npm run build && jest --forceExit",
     "watch": "npm run clean && tsc --watch"
   },
   "prettier": {
@@ -113,7 +113,7 @@
     "debug": "^4.3.4",
     "delegates": "^1.0.0",
     "destroy": "^1.2.0",
-    "encodeurl": "^1.0.2",
+    "encodeurl": "^2.0.0",
     "escape-html": "^1.0.3",
     "fresh": "~0.5.2",
     "http-assert": "^1.5.0",

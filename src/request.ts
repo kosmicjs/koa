@@ -162,9 +162,9 @@ const koaRequest: InternalKoaRequest = {
 
   get query() {
     const str = this.querystring;
-    const c = (this._querycache = this._querycache || {});
+    const c = (this._querycache = this._querycache || {}); // eslint-disable-line logical-assignment-operators
     // eslint-disable-next-line no-return-assign
-    return c[str] || (c[str] = qs.parse(str));
+    return (c[str] ||= qs.parse(str));
   },
 
   /**
@@ -247,7 +247,7 @@ const koaRequest: InternalKoaRequest = {
     let host = proxy && this.get('X-Forwarded-Host');
     if (!host) {
       if (this.req!.httpVersionMajor >= 2) host = this.get(':authority');
-      if (!host) host = this.get('Host');
+      host ||= this.get('Host');
     }
 
     if (!host) return '';
@@ -448,9 +448,7 @@ const koaRequest: InternalKoaRequest = {
    */
 
   get ip() {
-    if (!this[IP]) {
-      this[IP] = this.ips[0] || this.socket.remoteAddress || '';
-    }
+    this[IP] ||= this.ips[0] || this.socket.remoteAddress || '';
 
     return this[IP];
   },
@@ -492,7 +490,7 @@ const koaRequest: InternalKoaRequest = {
 
   get accept() {
     // eslint-disable-next-line no-return-assign
-    return this._accept || (this._accept = accepts(this.req!));
+    return (this._accept ||= accepts(this.req!));
   },
 
   /**
