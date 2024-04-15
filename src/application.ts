@@ -38,7 +38,7 @@ export type Options = {
   asyncLocalStorage?: boolean;
 };
 
-class App extends Emitter {
+export class Koa extends Emitter {
   /**
    * Make HttpError available to consumers of the library so that consumers don't
    * have a direct dependency upon `http-errors`
@@ -72,6 +72,9 @@ class App extends Emitter {
    * Defaults to NODE_ENV or "development"
    */
   env: string;
+  /**
+   * exposes koa-compose
+   */
   compose: typeof compose;
   /**
    * The extendable koa context prototype object.
@@ -128,7 +131,7 @@ class App extends Emitter {
    */
   constructor(options?: Options) {
     super();
-    options = options || {};
+    options ??= {};
     this.proxy = options.proxy || false;
     this.subdomainOffset = options.subdomainOffset || 2;
     this.proxyIpHeader = options.proxyIpHeader || 'X-Forwarded-For';
@@ -305,7 +308,7 @@ class App extends Emitter {
    */
 
   static get default() {
-    return App;
+    return Koa;
   }
 
   createAsyncCtxStorageMiddleware(): Middleware {
@@ -394,8 +397,5 @@ export {type Middleware, type Next} from './compose.js';
 export {type Context, type State} from './context.types.js';
 export {type KoaRequest, type Request} from './request.types.js';
 export {type KoaResponse, type Response} from './response.types.js';
-export default App;
 
-/* -- EXPORTS -- */
-module.exports = App;
-/* -- EXPORTS -- */
+export default Koa;

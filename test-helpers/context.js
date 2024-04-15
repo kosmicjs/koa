@@ -2,7 +2,7 @@
 
 const Stream = require('node:stream');
 // eslint-disable-next-line import/extensions
-const Koa = require('../dist/application');
+const Koa = require('../dist/application').default;
 
 module.exports = (req, res, app) => {
   const socket = new Stream.Duplex();
@@ -10,8 +10,8 @@ module.exports = (req, res, app) => {
   req = Object.assign({headers: {}, socket}, Stream.Readable.prototype, req);
   // eslint-disable-next-line prefer-object-spread
   res = Object.assign({_headers: {}, socket}, Stream.Writable.prototype, res);
-  req.socket.remoteAddress = req.socket.remoteAddress || '127.0.0.1';
-  app = app || new Koa();
+  req.socket.remoteAddress ||= '127.0.0.1';
+  app ||= new Koa();
   res.getHeader = (k) => res._headers[k.toLowerCase()];
   res.setHeader = (k, v) => {
     res._headers[k.toLowerCase()] = v;

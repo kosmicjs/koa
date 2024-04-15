@@ -1,8 +1,7 @@
 import {type UnknownRecord} from 'type-fest';
 
 function only(object: any, keys: string | string[]) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  object = object || {};
+  object ||= {};
 
   // eslint-disable-next-line eqeqeq
   if (typeof keys == 'string') keys = keys.split(/ +/);

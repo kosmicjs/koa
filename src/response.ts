@@ -268,6 +268,11 @@ const koaResponse: InternalKoaResponse = {
   redirect(url, alt) {
     // location
     if (url === 'back') url = this.ctx!.get('Referrer') || alt || '/';
+    if (/^https?:\/\//i.test(url)) {
+      // formatting url again avoid security escapes
+      url = new URL(url).toString();
+    }
+
     this.set('Location', encodeUrl(url));
 
     // status
@@ -474,6 +479,7 @@ const koaResponse: InternalKoaResponse = {
       this.res!.setHeader(field as string, setval);
     } else {
       for (const key in field as Record<string, string | string[]>) {
+        // eslint-disable-next-line prefer-object-has-own
         if (Object.prototype.hasOwnProperty.call(field, key))
           this.set(key, (field as Record<string, string | string[]>)[key]);
       }

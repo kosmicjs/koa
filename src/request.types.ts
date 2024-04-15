@@ -3,7 +3,6 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from 'node:http';
-import {type Url} from 'node:url';
 import {type TLSSocket} from 'node:tls';
 import {type ParsedUrlQuery} from 'node:querystring';
 import {type Socket} from 'node:net';

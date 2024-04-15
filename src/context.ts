@@ -99,12 +99,10 @@ const context: InternalContext = {
   },
 
   get cookies() {
-    if (!this[COOKIES]) {
-      this[COOKIES] = new Cookies(this.req!, this.res!, {
-        keys: this.app!.keys,
-        secure: this.request!.secure,
-      });
-    }
+    this[COOKIES] ||= new Cookies(this.req!, this.res!, {
+      keys: this.app!.keys,
+      secure: this.request!.secure,
+    });
 
     return this[COOKIES];
   },

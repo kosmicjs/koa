@@ -2,11 +2,7 @@ import {type IncomingMessage, type ServerResponse} from 'node:http';
 import type httpAssert from 'http-assert';
 import type Cookies from 'cookies';
 import type {UnknownRecord, SetOptional, Simplify} from 'type-fest';
-import createHttpError, {
-  type HttpError,
-  type CreateHttpError,
-  type UnknownError,
-} from 'http-errors';
+import {type HttpError, type UnknownError} from 'http-errors';
 import type {KoaResponse} from './response.types.js';
 import type {KoaRequest} from './request.types.js';
 import type Application from './application.js';
@@ -33,7 +29,7 @@ interface ContextBase {
    * }
    * ```
    */
-  [key: string]: unknown;
+  [key: string | symbol]: unknown;
   /**
    * Similar to .throw(), adds assertion.
    *
