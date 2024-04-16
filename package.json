@@ -51,12 +51,13 @@
   "main": "./dist/application.js",
   "types": "./dist/application.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "package.json"
   ],
   "scripts": {
     "build": "npm run clean && npm run compile",
     "clean": "rimraf -rf ./dist",
-    "compile": "tsc",
+    "compile": "duel && node scripts/remove-cjs-exports.mjs",
     "dev": "npm build --watch",
     "test": "node test-helpers/copy-tests.mjs && npm run build && jest --forceExit",
     "watch": "npm run clean && tsc --watch"

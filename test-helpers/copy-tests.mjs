@@ -5,14 +5,14 @@ import process from 'node:process';
 import {$} from 'execa';
 import tempDir from 'temp-dir';
 
-const KOA_REPO_URL = 'https://github.com/koajs/koa.git';
+// const KOA_REPO_URL = 'https://github.com/koajs/koa.git';
 
 const $$ = $({stdio: 'inherit'});
 
 await $$`rm -rf __tests__`;
-await $$`rm -rf ${tempDir}/koa`;
+// await $$`rm -rf ${tempDir}/koa`;
 
-await $({cwd: tempDir, stdio: 'inherit'})`git clone ${KOA_REPO_URL}`;
+// await $({cwd: tempDir, stdio: 'inherit'})`git clone ${KOA_REPO_URL}`;
 
 await $$`cp -r ${tempDir}/koa/__tests__ .`;
 
@@ -25,7 +25,7 @@ for (const file of files) {
     const content = await fs.readFile(path.join(fileRoot, file), 'utf8');
     const editedContent = content
       .replaceAll(/require\('\.\.\/?'\)/g, "require('..')")
-      .replaceAll(/require\('\.\.\/\.\.\/?'\)/g, "require('../..').default")
+      .replaceAll(/require\('\.\.\/\.\.\/?'\)/g, "require('../..')")
       .replaceAll(
         "require('../../lib/context')",
         "require('../../dist/context')",

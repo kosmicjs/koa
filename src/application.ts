@@ -399,3 +399,7 @@ export {type KoaRequest, type Request} from './request.types.js';
 export {type KoaResponse, type Response} from './response.types.js';
 
 export default Koa;
+
+/* -- EXPORTS -- */
+module.exports = Koa;
+/* -- EXPORTS -- */
